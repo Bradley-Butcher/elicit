@@ -12,11 +12,11 @@ Following this, run `poetry install` in the code directory to install the librar
 
 ## Usage
 
-There is little practical use that can be derived from the codebase in it's current state. However, you may look in the `scripts` folder for examples.
+There is little practical use that can be derived from the codebase in it's current state. However, you may look in the `scripts` folder for some VERY early examples.
 
 ## Components
 
-We currently identify six key pieces of information we aim to extract from each case:
+We currently (plan to) identify six key pieces of information we aim to extract from each case:
 
 - Defendent(s)
 - Victim(s)
@@ -48,4 +48,9 @@ Work is yet to begin on Mitigating Circumstances.
 
 Work is yet to begin on Aggrevating Circumstances.
 
-
+## Current Performance
+|    | R v. keith wallis   | R v. ben blakeley   | R v. pavlo lapshyn   |
+|---:|:--------------------|:--------------------|:---------------------|
+|  0 | 1/19                | nan                 | nan                  |
+|  1 | nan                 | 2/19                | nan                  |
+|  2 | nan                 | nan                 | 1/19                 |

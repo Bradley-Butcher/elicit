@@ -1,10 +1,14 @@
 from pathlib import Path
-from typing import List, Set
+from typing import Iterable, List, Literal, Optional, Set, Tuple, Union
+from attr import asdict, dataclass
+import pandas as pd
 import spacy
 from spacy.matcher import Matcher
+from tqdm import tqdm
 
 from case_extraction.defendants import extract_defendants_filename, extract_defendants_regex
-from case_extraction.charges import extract_offenses_matched
+from case_extraction.extraction import extract_variables
+from case_extraction.qa_transformer import extract_answers
 from case_extraction.loading import pdf_to_plaintext
 
 
@@ -57,73 +61,106 @@ def is_appeal(doc: str, filename: str) -> str:
     return False
 
 
+@dataclass
 class Case:
-    """
-    Class representing a case.
-    Contains:
-    - List of Defendants
-    - List of Victims
-    - List of Charges
-    - List of Mitigating Circumstances
-    - List of Aggravating Circumstances
-    """
 
-    def __init__(self, filename: str):
-        self.filename = filename
-        self.doc = pdf_to_plaintext(filename)
-        self.defendants = self.get_defendants()
-        self.victims = self.get_victims()
-        self.charges = self.get_charges()
-        self.mitigating_circumstances = self.get_mitigating_circumstances()
-        self.aggravating_circumstances = self.get_aggravating_circumstances()
+    offenses: Union[str, Set[str]]
+    premeditated: str
+    weapon: Union[str, Set[str]]
+    vulnerable_victim: str
+    prior_convictions: str
+    physical_abuse: str
+    emotional_abuse: str
+    age_mitigating: str
+    race_aggrevating: str
+    religious_aggrevating: str
+    offender_confession: str
+    victim_sex: Union[str, Set[str]]
+    victim_age: Union[str, Set[str]]
+    offender_age: Union[str, Set[str]]
+    offender_sex: Union[str, Set[str]]
+    relationship: Union[str, Set[str]]
+    victims: Union[str, Set[str]]
+    defendants: Union[str, Set[str]]
+    outcome: Union[str, Set[str]]
+    filename: Optional[str] = None
+    doc: Optional[str] = None
 
     @classmethod
-    def manual_entry(
-        cls,
-        filename: str,
-        defendants: List[str],
-        victims: List[str],
-        charges: List[str],
-        mitigating_circumstances: List[str],
-        aggravating_circumstances: List[str],
-    ) -> Case:   # type: ignore
+    def from_filename(cls, filename: Union[str, Path]):
         """
-        Manual entry of case details.
+        Initializes a case object from a filename, loading the document, and extracting the relevant information.
         """
-        return cls(filename, defendants, victims, charges, mitigating_circumstances, aggravating_circumstances)
+        filename = Path(filename)
+        doc = pdf_to_plaintext(filename, newlines=False)
+        defendants = list(Case.get_defendants(filename, doc))
+        case = cls(**extract_variables(doc=doc, defendant=defendants[0]))
+        case.filename = filename
+        case.doc = doc
+        return case
 
-    def get_defendants(self) -> Set[str]:
-        if self.defendants is not None:
-            return self.defendants
-        result = extract_defendants_filename(self.filename)
+    @staticmethod
+    def get_defendants(filename: Path, doc: str) -> Set[str]:
+        """
+        Gets the defendant names from the document or filename.
+        """
+        result = extract_defendants_filename(filename.stem)
         if not result:
-            result = extract_defendants_regex(self.doc)
+            result = extract_defendants_regex(doc)
         return set(result)
 
-    def get_victims(self) -> list:
-        pass
-
-    def get_charges(self) -> List[str]:
-        if self.charges is not None:
-            return self.charges
-        return extract_offenses_matched
-
-    def get_mitigating_circumstances(self) -> list:
-        pass
-
-    def get_aggravating_circumstances(self) -> list:
-        pass
-
-    def compare(self, other: Case):  # type: ignore
+    def extraction_performance(self, true: "Case") -> Tuple[float, str]:
         """
-        Compares two cases.
+        Calculates the proportion of matching properties between two cases.
         """
-        d1 = self.get_defendants()
-        d2 = other.get_defendants()
-        defendent_hamming = len(d1.symmetric_difference(d2))
+        other_dict = true.to_dict()
+        this_dict = self.to_dict()
+        match_count = 0
+        for k, v in other_dict.items():
+            if not isinstance(v, set):
+                v = set(v)
+            if this_dict[k] in v:
+                match_count += 1
+        return match_count / len(other_dict), f"{match_count}/{len(other_dict)}"
 
-        c1 = self.get_charges()
-        c2 = other.get_charges()
-        charge_hamming = len(c1.symmetric_difference(c2))
-        return {"defendants": defendent_hamming,
-                "charges": charge_hamming}
+    def __str__(self):
+        if isinstance(self.defendants, set):
+            return f"R v. {', '.join(self.defendants)}"
+        else:
+            return f"R v. {self.defendants}"
+
+    def compare(self, true: "Case") -> dict[dict[str, str]]:
+        return {f"{str(true)} Exctracted": self.to_dict(), f"{str(true)} True": true.to_dict()}
+
+    def debug(self, true: "Case") -> dict[dict[str, str]]:
+        answers = extract_answers(self.doc, threshold=0)
+        return {f"{str(true)} Answers": answers, f"{str(true)} True": true.to_dict()}
+
+    def to_dict(self):
+        dont_return = ["filename", "doc"]
+        return {k: v for k, v in asdict(self).items() if k not in dont_return}
+
+
+def debug_table(cases: List[Case], pdf_dir: Path) -> pd.DataFrame:
+    comparisons = {}
+    for case in tqdm(cases, desc="Processing Cases", total=len(cases)):
+        extracted_case = Case.from_filename(pdf_dir / case.filename)
+        comparisons = {**comparisons, **extracted_case.debug(case)}
+    return pd.DataFrame.from_dict(comparisons, orient='index')
+
+
+def comparison_table(cases: List[Case], pdf_dir: Path) -> pd.DataFrame:
+    comparisons = {}
+    for case in tqdm(cases, desc="Processing Cases", total=len(cases)):
+        extracted_case = Case.from_filename(pdf_dir / case.filename)
+        comparisons = {**comparisons, **extracted_case.compare(case)}
+    return pd.DataFrame.from_dict(comparisons, orient='index')
+
+
+def performance_table(cases: List[Case], pdf_dir: Path) -> pd.DataFrame:
+    performance = []
+    for case in tqdm(cases, desc="Processing Cases", total=len(cases)):
+        extracted_case = Case.from_filename(pdf_dir / case.filename)
+        performance.append(
+            {str(case): {"performance": extracted_case.extraction_performance(case)[1]}})
+    return pd.DataFrame.from_dict(performance, orient='index')
