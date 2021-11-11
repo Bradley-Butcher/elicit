@@ -1,0 +1,67 @@
+offenses: 
+  - What crime was commited?
+  - What was the conviction?
+  - What offense was commited?
+defendants: 
+  - Who committed the crime? 
+  - Who was the defendant? 
+  - Who was convicted?
+  - R v ?
+victims: 
+  - Who was the victim?
+  - Who was the victim of the crime?
+outcome: 
+  - What was the sentence?
+  - What was the minimum sentence?
+  - What was offender sentenced to?
+premeditated: 
+  - Was the crime premeditated?
+  - Was the crime planned?
+weapon: 
+  - What weapon was involved with the crime?
+  - What weapon was used?
+vulnerable_victim:
+  - Is the victim vulnerable?
+  - Was the victim of the crime vulnerable?
+  - victim vulnerable?
+prior_convictions:
+  - Does the offender have prior convictions?
+physical_abuse:
+  - Was there physical abuse?
+  - Was the victim subject to physical abuse?
+  - physical abuse?
+emotional_abuse:
+  - Was there emotional abuse?
+  - Was the victim subject to emotional abuse?
+  - emotional abuse?
+age_mitigating:
+  - Was age a mitigating factor?
+  - Did the age of offender mitigate the crime?
+race_aggrevating:
+  - Was there a racist motivation for the crime?
+  - Was the crime aggrevated by racism?
+religious_aggrevating:
+  - Was there a religious motivation for the crime?
+  - Was the crime aggrevated by religion?
+offender_confession:
+  - Did the offender confess to commiting the crime?
+  - Did the offender plead guilty?
+victim_sex:
+  - Was the victim a male man?
+  - Was the victim a female woman?
+victim_age:
+  - What age was the victim?
+  - How old was the victim?
+offender_age:
+  - What age was the offender?
+  - How old was the offender?
+offender_sex:
+  - Was the offender a male man?
+  - Was the offender a female woman?
+relationship:
+  - What was the relationship between the victim and offender?
+  - How did the offender know the victim?
+  - Were the victim and offender strangers?
+  - Had the victim and offender previously been in a relationship?
+  - Were the victim and offender family?
+

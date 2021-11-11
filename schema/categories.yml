@@ -1,0 +1,77 @@
+offenses:
+  - murder
+  - rape
+  - manslaughter
+  - computer misuse
+  - wounding with intent
+  - attempted murder
+  - grievous bodily harm with intent
+  - grievous bodily harm
+  - sexual crimes
+  - misconduct in public office
+  - robbery
+  - administering a poison or noxious substance
+  - making indecent images of children
+  - attempting to meet a child following sexual grooming
+  - sexual activity with a child
+  - causing a child to engage in sexual activity
+  - sexual assault of a child under 13
+  - access the voicemails of other people
+  - conspiracy to defraud
+  - possessing criminal property
+  - violent disorder
+  - burglary
+  - theft
+  - preventing the lawful and decent burial
+  - sexual offences
+  - false accounting
+  - causing an explosion with an intent to endanger life
+  - engaging in conduct in preparation of terrorist acts
+premeditated:
+  - premeditated
+  - not premeditated
+weapon:
+  - gun
+  - knife
+  - none
+vulnerable_victim:
+  - vulnerable
+  - not vulnerable
+prior_convictions:
+  - prior convictions
+  - no prior convictions
+physical_abuse:
+  - physical abuse
+  - no physical abuse
+emotional_abuse:
+  - emotional abuse
+  - no emotional abuse
+age_mitigating:
+  - age mitigating
+  - age not mitigating
+race_aggrevating:
+  - race an aggrevating factor
+  - race not an aggrevating factor
+religious_aggrevating:
+  - religion an aggrevating factor
+  - religion not an aggrevating factor
+offender_confession:
+  - confession
+  - no confession
+victim_sex:
+  - male
+  - female
+victim_age: continuous
+offender_age: continuous
+offender_sex:
+  - male
+  - female
+relationship:
+  - none
+  - family
+  - friend
+  - partner
+  - colleague
+victims: raw
+defendants: raw
+outcome: raw
