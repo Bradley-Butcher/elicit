@@ -70,6 +70,6 @@ def filter(answers: Dict[str, Tuple[str, float]], threshold: float = 0.7) -> Dic
     return extracted_variables
 
 
-def extract_variables(doc: str, match_threshold: float = 0.5, qa_threshold: float = 0.1, defendant: Optional[str] = None) -> Dict[str, List[str]]:
+def extract_variables(doc: str, match_threshold: float = 0.5, qa_threshold: float = 0.2, defendant: Optional[str] = None) -> Dict[str, List[str]]:
     answers = extract_answers(doc, threshold=qa_threshold, defendant=defendant)
     return filter(answers, threshold=match_threshold)

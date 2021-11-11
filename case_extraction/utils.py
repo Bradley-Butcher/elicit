@@ -21,7 +21,7 @@ def extract_entities(doc: str, entity_types: Set[str] = {"PERSON"}) -> list:
 
 
 def update_readme(df: pd.DataFrame) -> None:
-    base_path = Path(__file__).parent.parent
+    base_path = Path(__file__).parent
     readme = base_path.parent / "README.md"
     with open(readme, "r") as f:
         lines = f.readlines()

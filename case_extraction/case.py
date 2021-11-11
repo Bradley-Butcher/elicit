@@ -87,14 +87,15 @@ class Case:
     doc: Optional[str] = None
 
     @classmethod
-    def from_filename(cls, filename: Union[str, Path]):
+    def from_filename(cls, filename: Union[str, Path], match_threshold: float = 0.5, qa_threshold: float = 0.2) -> "Case":
         """
         Initializes a case object from a filename, loading the document, and extracting the relevant information.
         """
         filename = Path(filename)
         doc = pdf_to_plaintext(filename, newlines=False)
         defendants = list(Case.get_defendants(filename, doc))
-        case = cls(**extract_variables(doc=doc, defendant=defendants[0]))
+        case = cls(**extract_variables(doc=doc, match_threshold=match_threshold,
+                   qa_threshold=qa_threshold, defendant=defendants[0]))
         case.filename = filename
         case.doc = doc
         return case
@@ -117,9 +118,11 @@ class Case:
         this_dict = self.to_dict()
         match_count = 0
         for k, v in other_dict.items():
-            if not isinstance(v, set):
+            if isinstance(v, str):
+                v = {v}
+            if isinstance(v, list):
                 v = set(v)
-            if this_dict[k] in v:
+            if str(this_dict[k]).lower() in v:
                 match_count += 1
         return match_count / len(other_dict), f"{match_count}/{len(other_dict)}"
 
@@ -132,8 +135,10 @@ class Case:
     def compare(self, true: "Case") -> dict[dict[str, str]]:
         return {f"{str(true)} Exctracted": self.to_dict(), f"{str(true)} True": true.to_dict()}
 
-    def debug(self, true: "Case") -> dict[dict[str, str]]:
+    def debug(self, true: Optional["Case"]) -> dict[dict[str, str]]:
         answers = extract_answers(self.doc, threshold=0)
+        if not true:
+            return {f"{str(self)}": answers}
         return {f"{str(true)} Answers": answers, f"{str(true)} True": true.to_dict()}
 
     def to_dict(self):
@@ -158,9 +163,10 @@ def comparison_table(cases: List[Case], pdf_dir: Path) -> pd.DataFrame:
 
 
 def performance_table(cases: List[Case], pdf_dir: Path) -> pd.DataFrame:
-    performance = []
+    performance = {}
     for case in tqdm(cases, desc="Processing Cases", total=len(cases)):
         extracted_case = Case.from_filename(pdf_dir / case.filename)
-        performance.append(
-            {str(case): {"performance": extracted_case.extraction_performance(case)[1]}})
+        p = {
+            str(case): {"Correctly Extracted Variables": extracted_case.extraction_performance(case)[1]}}
+        performance = {**performance, **p}
     return pd.DataFrame.from_dict(performance, orient='index')
