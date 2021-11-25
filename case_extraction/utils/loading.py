@@ -3,6 +3,7 @@ from pdfminer.pdfinterp import PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator, PDFResourceManager
 from pdfminer.layout import LAParams, LTTextBoxHorizontal
 from pdfminer.pdfpage import PDFPage
+from prefect import task
 from pathlib import Path
 from io import StringIO
 from typing import List, Optional
@@ -57,7 +58,7 @@ def load_instrument_list() -> List[str]:
     offenses = pd.read_csv(open(str(data_path.resolve()), errors='ignore'))
     return _filter_list(offenses['Instrument'].tolist())
 
-
+@task
 def pdf_to_plaintext(pdf_location: Path, pages: Optional[List[int]] = None, newlines: bool = False, raw: bool = False) -> str:
     raw_text = load_pdf(pdf_location, pages=pages)
     if not raw:

@@ -15,6 +15,8 @@ PyYAML = "^6.0"
 transformers = "^4.12.3"
 torch = "^1.10.0"
 sentence-transformers = "^2.1.0"
+datasets = "^1.15.1"
+prefect = ">=2.0.0a"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

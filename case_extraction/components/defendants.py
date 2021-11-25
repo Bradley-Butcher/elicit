@@ -1,6 +1,11 @@
 import itertools
-from typing import List
+from pathlib import Path
+from typing import List, Set
 import re
+
+from prefect import task
+
+from case_extraction.case import Case, CaseField
 
 
 def _flatten(l: List[List[str]]) -> List[str]:
@@ -50,3 +55,14 @@ def extract_defendants_regex(doc: str) -> List[str]:
             names.append(match)
     names = filter(None, names)
     return [n.strip().lower() for n in names]
+
+@task
+def get_defendants(filename: Path, doc: str, case: Case) -> Case:
+    """
+    Gets the defendant names from the document or filename.
+    """
+    result = extract_defendants_filename(filename.stem)
+    if not result:
+        result = extract_defendants_regex(doc)
+    case.defendants =  CaseField(value=result[0], confidence=1.0, evidence="")
+    return case

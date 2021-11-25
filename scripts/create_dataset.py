@@ -35,17 +35,17 @@ def create_train_test_dataset(court: str, output_dir: Path, n_train_samples: int
         n_test_samples <= len(list(court_dir.glob("*.pdf"))
                               ), "Not enough PDFs in the directory"
     docs = sorted(set([case.name for case in court_dir.glob(
-        "*.pdf")]) - set([case.filename.name for case in load_test_cases()]))
+        "*.pdf")]) - set([case.filename for case in load_test_cases()]))
     random.shuffle(docs)
     print("------ Converting PDFs to TXT -----------")
     print(" TRAINING: ")
     training_pdf = []
     for d in tqdm(docs[:n_train_samples], desc="Converting Training PDFs to TXT", total=n_train_samples):
-        training_pdf.append(pdf_to_plaintext(court_dir / d))
+        training_pdf.append(pdf_to_plaintext(court_dir / d, newlines=False))
     test_pdfs = []
     print(" TESTING: ")
     for d in tqdm(docs[-n_test_samples:], desc="Converting Test PDFs to TXT", total=n_test_samples):
-        test_pdfs.append(pdf_to_plaintext(court_dir / d))
+        test_pdfs.append(pdf_to_plaintext(court_dir / d, newlines=False))
     print("------ Saving TXT files -----------")
     print(" TRAINING: ")
     save_txt_files(training_pdf, output_dir / "train")

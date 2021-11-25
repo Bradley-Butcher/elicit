@@ -97,8 +97,8 @@ The pipeline is currently:
 ![](pipeline.png)
 
 ## Current Performance
-| Case        | Correctly Extracted Variables   |
-|:-------------------|:--------------------------------|
-|   R v. ben blakeley  | 10/19                           |
-|   R v. keith wallis  | 9/19                            |
-|  R v. pavlo lapshyn | 16/19                           |
+|    | Unnamed: 0         | Correctly Extracted Variables   |
+|---:|:-------------------|:--------------------------------|
+|  0 | R v. ben blakeley  | 12/19                           |
+|  1 | R v. keith wallis  | 3/19                            |
+|  2 | R v. pavlo lapshyn | 16/19                           |

@@ -11,7 +11,6 @@ victims:
   - Who was the victim?
   - Who was the victim of the crime?
 outcome: 
-  - What was the sentence?
   - What was the minimum sentence?
   - What was offender sentenced to?
 premeditated: 
@@ -49,15 +48,19 @@ offender_confession:
 victim_sex:
   - Was the victim a male man?
   - Was the victim a female woman?
+  - What gender was the victim?
 victim_age:
   - What age was the victim?
   - How old was the victim?
+  - How many years old was the victim?
 offender_age:
   - What age was the offender?
   - How old was the offender?
+  - How many years old was offender?
 offender_sex:
   - Was the offender a male man?
   - Was the offender a female woman?
+  - What gender was the offender?
 relationship:
   - What was the relationship between the victim and offender?
   - How did the offender know the victim?

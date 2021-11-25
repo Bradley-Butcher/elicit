@@ -1,5 +1,5 @@
 import yaml
-from transformers import pipeline
+from transformers import pipeline, AutoModelForQuestionAnswering, AutoTokenizer
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 import itertools
@@ -7,11 +7,12 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-model_name = "deepset/roberta-base-squad2"
-schema_path = Path(__file__).parent.parent / "schema" / "questions.yml"
+model_path = Path(__file__).parent.parent.parent / "models"
+model = AutoModelForQuestionAnswering.from_pretrained(
+    str(model_path.resolve()))
+tokenizer = AutoTokenizer.from_pretrained("deepset/roberta-base-squad2")
 
-
-def load_questions() -> Dict[str, List[str]]:
+def load_questions(schema_path: Path) -> Dict[str, List[str]]:
     with open(schema_path, "r") as f:
         return yaml.safe_load(f)
 
@@ -33,10 +34,10 @@ def _subsitute_defendant(question: str, defendant: str):
     return question
 
 
-def extract_answers(doc: str, topk: int = 5, threshold: float = 0.3, defendant: Optional[str] = None) -> Dict[str, Tuple[str, float]]:
-    questions = load_questions()
+def extract_answers(doc: str, question_schema: Path, topk: int = 5, threshold: float = 0.3, defendant: Optional[str] = None) -> Dict[str, Tuple[str, float]]:
+    questions = load_questions(question_schema)
     nlp = pipeline('question-answering',
-                   model=model_name, tokenizer=model_name, device=0)
+                   model=model, tokenizer=tokenizer, device=0)
     answers = {}
     question_input = []
     for k in questions.keys():

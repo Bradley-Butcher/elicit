@@ -22,6 +22,8 @@ offenses:
   - violent disorder
   - burglary
   - theft
+  - fraud
+  - acquiring a biological toxin
   - preventing the lawful and decent burial
   - sexual offences
   - false accounting
@@ -31,9 +33,9 @@ premeditated:
   - premeditated
   - not premeditated
 weapon:
-  - gun
+  - firearm
   - knife
-  - none
+  - no weapon
 vulnerable_victim:
   - vulnerable
   - not vulnerable
@@ -45,10 +47,11 @@ physical_abuse:
   - no physical abuse
 emotional_abuse:
   - emotional abuse
+  - mental abuse
   - no emotional abuse
 age_mitigating:
-  - age mitigating
-  - age not mitigating
+  - mitigate
+  - not mitigate
 race_aggrevating:
   - race an aggrevating factor
   - race not an aggrevating factor
@@ -61,17 +64,19 @@ offender_confession:
 victim_sex:
   - male
   - female
+  - unknown
 victim_age: continuous
 offender_age: continuous
 offender_sex:
   - male
   - female
+  - unknown
 relationship:
-  - none
   - family
   - friend
   - partner
   - colleague
+  - none
 victims: raw
 defendants: raw
 outcome: raw
