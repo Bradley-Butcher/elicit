@@ -19,7 +19,7 @@ def comparison_table(flow: Callable, test_cases: List[Case], ensemble_mode: str,
         raise ValueError(f"No case found for {filename}")
     cases = run_ensemble(
         flow, 
-        ensemble_mode=ensemble_mode,
+        ensemble_args={"mode": "majority", "majority_threshold": 0.5},
         pdfs=filenames,
         question_schema=question_schema,
         categories_schema=category_schema)

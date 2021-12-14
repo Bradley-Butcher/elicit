@@ -1,9 +1,11 @@
 import yaml
 from transformers import pipeline, AutoModelForQuestionAnswering, AutoTokenizer
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 import itertools
 import warnings
+
+from case_extraction.case import Case
 
 warnings.filterwarnings("ignore")
 
@@ -26,7 +28,7 @@ def _flatten_answers(answers: Union[List[Dict], List[List[Dict]]]) -> List[Dict]
 
 def _filter_candidates(answers: List[dict], threshold: float = 0.5) -> str:
     answers = _flatten_answers(answers=answers)
-    return [(a["answer"], a["score"]) for a in answers if a["score"] > threshold]
+    return [(a["answer"], a["score"], a["start"], a["end"]) for a in answers if a["score"] > threshold]
 
 
 def _subsitute_defendant(question: str, defendant: str):
@@ -34,7 +36,7 @@ def _subsitute_defendant(question: str, defendant: str):
     return question
 
 
-def extract_answers(doc: str, question_schema: Path, topk: int = 5, threshold: float = 0.3, defendant: Optional[str] = None) -> Dict[str, Tuple[str, float]]:
+def extract_answers(doc: str, case: Case, question_schema: Path, topk: int = 5, threshold: float = 0.3) -> Dict[str, Tuple[str, float, int, int]]:
     questions = load_questions(question_schema)
     nlp = pipeline('question-answering',
                    model=model, tokenizer=tokenizer, device=0)
@@ -42,18 +44,17 @@ def extract_answers(doc: str, question_schema: Path, topk: int = 5, threshold: f
     question_input = []
     for k in questions.keys():
         for q in questions[k]:
-            if defendant:
-                if k == "defendants":
-                    answers[k] = [(defendant, 1.0)]
-                    continue
+            if "<" in q and ">" in q:
+                sub_key = q[q.find("<")+1:q.find(">")]
+                if not hasattr(case, sub_key):
+                    warnings.warn(f"{sub_key} not found in Case object. Incorrectly chained. Subsituting in generic.")
+                    q = q.replace("<" + sub_key + ">", sub_key)
                 else:
-                    q = _subsitute_defendant(question=q, defendant=defendant)
+                    q = q.replace("<" + sub_key + ">", getattr(case, sub_key).value)
             question_input.append({"question": q, "context": doc})
     res = nlp(question_input, top_k=topk)
     index = 0
     for k in questions.keys():
-        if defendant and k == "defendants":
-            continue
         answers[k] = _filter_candidates(
             res[index:index+len(questions[k])], threshold=threshold)
         index += len(questions[k])

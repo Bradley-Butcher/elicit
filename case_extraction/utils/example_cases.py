@@ -228,16 +228,3 @@ def load_test_cases() -> List[Case]:
 
 
     return [case_1, case_2, case_3, case_4, case_5, case_6, case_7, case_8, case_9, case_10]
-
-
-def load_train_cases() -> List[Case]:
-    case_1 = Case.from_manual(
-        filename="R_-v-_Colin_Ash-Smith.pdf",
-        defendants=["colin ash-smith"],
-        victims=["claire tiltman"],
-        charges=["murder"],
-        mitigating_circumstances=[],
-        aggravating_circumstances=[
-            "premeditated", "planned", "other convictions", "vulnerable victim"],
-        outcome=["life inprisonment, minimum 21 years"])
-    return [case_1]

@@ -5,7 +5,7 @@ import re
 
 from prefect import task
 
-from case_extraction.case import Case, CaseField
+from case_extraction.case import Case, CaseField, Evidence
 
 
 def _flatten(l: List[List[str]]) -> List[str]:
@@ -64,5 +64,5 @@ def get_defendants(filename: Path, doc: str, case: Case) -> Case:
     result = extract_defendants_filename(filename.stem)
     if not result:
         result = extract_defendants_regex(doc)
-    case.defendants =  CaseField(value=result[0], confidence=1.0, evidence="")
+    case.defendants =  CaseField(value=result[0], confidence=1.0, evidence=Evidence(local_context=str(filename.stem), wider_context=str(filename.stem)))
     return case

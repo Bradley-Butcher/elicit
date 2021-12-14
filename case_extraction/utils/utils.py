@@ -34,3 +34,12 @@ def update_readme(df: pd.DataFrame) -> None:
     lines[performance_line: performance_line + len(new_md)] = new_md
     with open(readme, "w") as f:
         f.write("\n".join([l.replace("\n", "") for l in lines]))
+
+
+def context_from_doc_char(doc: str, start_idx: int, end_idx: int, padding: int = 100) -> str:
+    """
+    Extracts the context from the document based on the start and end indices.
+    """
+    start_idx = max(0, start_idx - padding)
+    end_idx = min(len(doc), end_idx + padding)
+    return doc[start_idx: end_idx]

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Literal, Optional, Set, Tuple, Union
 import pandas as pd
@@ -5,7 +6,7 @@ import spacy
 from spacy.matcher import Matcher
 from tqdm import tqdm
 
-from case_extraction.components.qa_transformer import extract_answers
+from case_extraction.utils.utils import context_from_doc_char
 
 
 def is_remarks(doc: str, filename: str) -> str:
@@ -56,21 +57,60 @@ def is_appeal(doc: str, filename: str) -> str:
         return True
     return False
 
+@dataclass
+class Evidence:
+    """
+    Class for storing evidence.
+    """
+    local_context: str
+    wider_context: str
+
+    @classmethod
+    def no_match(cls) -> "Evidence":
+        """Returns an evidence object with no match."""
+        return cls("N/A", "N/A")
+    
+    @classmethod
+    def from_character_startend(cls, doc: str, start: int, end:int, local_padding: int = 100, wider_padding: int = 500) -> "Evidence":
+        """
+        Returns an evidence object from a character start and end index.
+        """
+        local_context = context_from_doc_char(doc, start, end, local_padding)
+        wider_context = context_from_doc_char(doc, start, end, wider_padding)
+        return cls(local_context, wider_context)
 
 class CaseField:
-    def __init__(self, value: str, confidence: float, evidence: str):
+    def __init__(self, value: str, confidence: float, evidence: Evidence):
         self.value = value
         self.confidence = confidence
         self.evidence = evidence
     
     def __str__(self) -> str:
-        return f"{self.evidence} ({self.value}, {self.confidence})"
+        return f"{self.value} ({self.confidence})"
     
     def __mul__(self, other: float) -> float:
         return self.confidence * other
     
     def __rmul__(self, other: float) -> float:
         return self.confidence * other
+    
+    def __add__(self, other: Union["CaseField", list]) -> List["CaseField"]:
+        if isinstance(other, CaseField):
+            return [self, other]
+        elif isinstance(other, list):
+            return [self] + other
+        else:
+            raise TypeError(f"Cannot add {type(other)} to CaseField")
+    
+    def __radd__(self, other: Union["CaseField", list]) -> List["CaseField"]:
+        if isinstance(other, CaseField):
+            return [self, other]
+        elif isinstance(other, list):
+            return [self] + other
+        else:
+            raise TypeError(f"Cannot add {type(other)} to CaseField")
+    
+    
 
 class Case:
 
@@ -81,16 +121,24 @@ class Case:
         
     def add_dict(self, dict_to_add: dict):
         for key, value in dict_to_add.items():
-            dict_to_add[key] = CaseField(value=value[0], confidence=value[1], evidence="")
-        self.__dict__.update(dict_to_add)
-
+            if not hasattr(self, key):
+                setattr(self, key, value)
+            else:
+                current = getattr(self, key)
+                if isinstance(value, CaseField):
+                    value = [value]
+                setattr(self, key, current + value)
+                
     @classmethod
     def manual_entry(cls, filename: Union[str, Path], **kwargs):
         """
         Class method for creating a case object using direct input for test cases.
         """
         for key, value in kwargs.items():
-            kwargs[key] = CaseField(value=value, confidence=1, evidence="")
+            if isinstance(value, list) or isinstance(value, set):
+                kwargs[key] = [CaseField(value=v, confidence=1, evidence="") for v in value]
+            else:
+                kwargs[key] = CaseField(value=value, confidence=1, evidence="")
         return cls(filename=filename, method="manual", **kwargs)
     
     @staticmethod
@@ -114,37 +162,22 @@ class Case:
         return match_count / len(other_dict), f"{match_count}/{len(other_dict)}"
 
     def __str__(self):
-        if isinstance(self.defendants, set):
-            return f"R v. {', '.join(self.defendants.value)}"
+        if isinstance(self.defendants, Iterable):
+            return f"R v. {', '.join([d.value for d in self.defendants])}"
         else:
             return f"R v. {self.defendants.value}"
 
     def compare(self, true: "Case") -> dict[dict[str, str]]:
-        return {f"{str(true)} Extracted": self.to_dict(), f"{str(true)} True": true.to_dict()}
+        return {f"{str(true)} Extracted": self.to_printable_dict(), f"{str(true)} True": true.to_printable_dict()}
 
-    def debug(self, true: Optional["Case"]) -> dict[dict[str, str]]:
-        answers = extract_answers(self.doc, threshold=0)
-        if not true:
-            return {f"{str(self)}": answers}
-        return {f"{str(true)} Answers": answers, f"{str(true)} True": true.to_dict()}
+    def to_printable_dict(self) -> dict[str, str]:
+        output = self.to_dict()
+        for k, v in output.items():
+            if isinstance(v, list):
+                output[k] = ", ".join([str(vi) for vi in v])
+            if isinstance(v, CaseField):
+                output[k] = str(v)
+        return output
 
     def to_dict(self):
-        return {k: v for k, v in self.__dict__.items() if isinstance(v, CaseField)}
-
-
-
-# def debug_table(cases: List[Case], pdf_dir: Path, question_schema: Path, category_schema: Path) -> pd.DataFrame:
-#     comparisons = {}
-#     for case in tqdm(cases, desc="Processing Cases", total=len(cases)):
-#         extracted_case = Case.from_filename(pdf_dir / case.filename, categories_schema=category_schema, question_schema=question_schema)
-#         comparisons = {**comparisons, **extracted_case.debug(case)}
-#     return pd.DataFrame.from_dict(comparisons, orient='index')
-
-# def performance_table(cases: List[Case], pdf_dir: Path, question_schema: Path, category_schema: Path) -> pd.DataFrame:
-#     performance = {}
-#     for case in tqdm(cases, desc="Processing Cases", total=len(cases)):
-#         extracted_case = Case.from_filename(pdf_dir / case.filename, categories_schema=category_schema, question_schema=question_schema)
-#         p = {
-#             str(case): {"Correctly Extracted Variables": extracted_case.extraction_performance(case)[1]}}
-#         performance = {**performance, **p}
-#     return pd.DataFrame.from_dict(performance, orient='index')
+        return {k: v for k, v in self.__dict__.items() if isinstance(v, CaseField) or isinstance(v, list)}

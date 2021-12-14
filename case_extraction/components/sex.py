@@ -12,8 +12,18 @@ def get_gender_from_api(name: str) -> dict:
 
 @task
 def sex_from_name(case: Case) -> Case:
-    victim_fname = case.victims.value.split(" ")[0]
-    defendant_fname = case.defendants.value.split(" ")[0]
+
+    if isinstance(case.victims, list):
+        victim_fname = [v.value.split(" ")[0] for v in case.victims]
+        victim_fname = victim_fname[0]
+    else:
+        victim_fname = case.victims.value.split(" ")[0]
+
+    if isinstance(case.victims, list):
+        defendant_fname = [v.value.split(" ")[0] for v in case.defendants]
+        defendant_fname = defendant_fname[0]
+    else:
+        defendant_fname = case.defendants.value.split(" ")[0]
     vsex = get_gender_from_api(victim_fname)
     dsex = get_gender_from_api(defendant_fname)
     case.victim_sex = CaseField(value=vsex["gender"], confidence=vsex["probability"], evidence=victim_fname)

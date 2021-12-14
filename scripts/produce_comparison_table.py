@@ -18,6 +18,3 @@ if __name__ == "__main__":
         schema_path / "questions.yml", 
         schema_path / "categories.yml"
     ).to_csv("output_table.csv")
-    # cases = load_test_cases()
-    # comparison_table(cases, crown_court_path, schema_path / "questions.yml", schema_path / "categories.yml", True).to_csv("output_table.csv")
-    # # debug_table(cases, crown_court_path).to_csv("debug_table.csv")
