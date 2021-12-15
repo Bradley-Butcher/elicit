@@ -172,7 +172,7 @@ class Ensembler:
             output_values = {}
             for value in Ensembler.get_value_list(case_group, key):
                 vector, evidence, methods = self.get_output_value(case_group, key, value)
-                output_values[value] = asdict(Output(str(case_group[0].filename), methods, vector, evidence))
+                output_values[value] = asdict(Output(methods, vector, evidence))
             outputs[key] = output_values
         return outputs
 

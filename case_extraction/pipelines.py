@@ -4,6 +4,7 @@ from prefect import flow
 from pathlib import Path
 from prefect.flows import Flow
 from case_extraction.case import Case
+from case_extraction.components.keyword_search import exact_match
 
 from case_extraction.components.nli_transformer import nli_extraction
 from case_extraction.components.similarity_transformer import sim_extraction
@@ -33,6 +34,11 @@ def regex_flow(doc: str, pdf: Path) -> Case:
     case = get_victims_regex(doc, case)
     return case
 
+@flow(name="keyword_flow")
+def keyword_flow(doc: str, pdf: Path, keyword_schema: Path) -> Case:
+    case = Case(filename=pdf.stem, method="keyword")
+    case = exact_match(doc, case, keyword_schema)
+    return case
 
 @flow(name="ipet_flow")
 def ipet_flow(doc: str, pdf: Path, pattern_schema: Path, categories_schema: Path) -> List[Case]:
@@ -41,15 +47,16 @@ def ipet_flow(doc: str, pdf: Path, pattern_schema: Path, categories_schema: Path
 
 
 @flow
-def main_flow(pdfs: List[Path], question_schema: Path, categories_schema: Path) -> List[Case]:
+def main_flow(pdfs: List[Path], question_schema: Path, categories_schema: Path, keyword_schema: Path) -> List[Case]:
     cases: List[Case] = []
     for pdf in pdfs:
         doc = pdf_to_plaintext(pdf)
+        # sub-flows
         nli_case = nli_flow(doc=doc, pdf=pdf, question_schema=question_schema, categories_schema=categories_schema)
         sim_case = sim_flow(doc=doc, pdf=pdf, question_schema=question_schema, categories_schema=categories_schema)
-        # regex_case = regex_flow(doc=doc, pdf=pdf)
-        cases += [nli_case, sim_case]
-        # cases.append(regex_case)
+        keyword_case = keyword_flow(doc=doc, pdf=pdf, keyword_schema=keyword_schema)
+        # Append Cases
+        cases += [nli_case, sim_case, keyword_case]
     return cases
 
 def run_ensemble(flow: Callable, ensemble_args: dict, **kwargs: dict) -> List[Case]:

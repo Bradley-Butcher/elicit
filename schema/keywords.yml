@@ -1,0 +1,199 @@
+offenses:
+  murder:
+    - murder
+    - killed
+  rape:
+    - rape
+  manslaughter:
+    - manslaughter
+    - killed
+    - accidental death
+  computer misuse:
+    - computer misuse
+    - hacking
+    - virus
+  wounding with intent:
+    - wounding with intent
+    - intended harm
+  attempted murder:
+    - attempted murder
+  grievous bodily harm with intent:
+    - grievous bodily harm with intent
+    - GBH with intent
+  grievous bodily harm:
+    - grievous bodily harm
+    - GBH
+  sexual crimes:
+    - sexual crime
+  misconduct in public office:
+    - misconduct in public office
+    - public office
+  robbery:
+    - robbery
+  administering a poison or noxious substance:
+    - administering a poison
+    - poison
+    - gas
+  making indecent images of children:
+    - child pornography
+    - indecent images
+  attempting to meet a child following sexual grooming:
+    - grooming
+  sexual activity with a child:
+    - sexual activity with a child
+    - underage sex
+  causing a child to engage in sexual activity:
+    - causing a child to engage in sexual activity
+  sexual assault of a child under 13:
+    - sexual assault of a child
+  access the voicemails of other people:
+    - voicemails
+  conspiracy to defraud:
+    - defraud
+    - conspiracy to defraud
+  possessing criminal property:
+    - possessing criminal property
+  violent disorder:
+    - violent disorder
+  burglary:
+    - burglary
+  theft:
+    - theft
+    - steal
+  fraud:
+    - fraud
+  acquiring a biological toxin:
+    - toxin
+    - biological toxin
+  preventing the lawful and decent burial:
+    - preventing the lawful and decent burial 
+  sexual offences:
+   - sexual offense
+  false accounting:
+    - false accounting
+  causing an explosion with an intent to endanger life:
+    - explosion with an intent to endanger life
+  engaging in conduct in preparation of terrorist acts:
+    - engaging in conduct in preparation of terrorist acts
+premeditated:
+  premeditated:
+    - premeditated
+    - planned
+  not premeditated:
+    - not planned
+    - not premeditated
+weapon:
+  firearm:
+    - firearm
+    - gun
+    - rifle
+    - shotgun
+  knife:
+    - knife
+    - stabbed
+    - dagger
+  no weapon:
+    - fists
+    - strangulation
+    - pushed
+    - fight
+vulnerable_victim:
+  vulnerable:
+    - vulnerable
+    - weak
+    - old
+    - young
+  not vulnerable:
+    - not vulnerable
+prior_convictions:
+  prior convictions:
+    - history
+    - previous crimes
+    - prior convictions
+    - pattern of behaviour
+  no prior convictions:
+    - previous good standing
+    - no prior convictions
+physical_abuse:
+  physical abuse:
+    - physical abuse
+    - attack
+  no physical abuse:
+    - no physical abuse
+emotional_abuse:
+  emotional abuse:
+    - mental abuse
+    - abused mentally
+    - emotional abuse
+    - abused emotionally
+    - manipulated
+  no emotional abuse:
+    - no emotional abuse
+age_mitigating:
+  mitigate:
+    - age mitigates
+    - young
+  not mitigate:
+    - no mitigating factors
+    - age does not mitigate
+race_aggrevating:
+  race an aggrevating factor:
+    - race an aggrevating factor
+    - racist
+    - hate crime
+    - race
+  race not an aggrevating factor:
+    - race not an aggrevating factor
+    - not a hate crime
+religious_aggrevating:
+  religion an aggrevating factor:
+    - religious
+    - religion
+  religion not an aggrevating factor:
+    - religion not an aggrevating factor
+offender_confession:
+  confession:
+    - confessed
+    - plead guilty
+    - pleaded guilty
+  no confession:
+    - denied
+victim_sex:
+  male:
+    - man
+    - male
+    - boy
+  female:
+    - female
+    - woman
+    - girl
+offender_sex:
+  male:
+    - man
+    - male
+    - boy  
+  female:
+    - female
+    - woman
+    - girl 
+relationship:
+  family:
+    - family
+    - mother
+    - father
+    - sister
+    - brother
+  friend:
+    - friend
+  partner:
+    - girlfriend
+    - boyfriend
+    - wife
+    - husband
+    - fiance
+  colleague:
+    - colleague
+    - employee
+    - boss
+  none:
+    - stranger

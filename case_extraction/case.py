@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Literal, Optional, Set, Tuple, Union
 import pandas as pd
 import spacy
+from spacy.language import Language
 from spacy.matcher import Matcher
 from tqdm import tqdm
 
@@ -77,6 +78,28 @@ class Evidence:
         """
         local_context = context_from_doc_char(doc, start, end, local_padding)
         wider_context = context_from_doc_char(doc, start, end, wider_padding)
+        return cls(local_context, wider_context)
+    
+    @classmethod
+    def from_spacy(cls, doc: Language, start: int, end:int, local_padding: int = 0, wider_padding: int = 10) -> "Evidence":
+        """
+        Returns an evidence object from a character start and end index.
+        """
+        local_context = doc[start:end]
+        start = max(0, start - local_padding)
+        end = min(len(doc), end + local_padding)
+        wider_context = doc[start:end]
+        return cls(local_context.text, wider_context.text)
+    
+    @classmethod
+    def from_spacy_multiple(cls, doc: Language, evidence_list: List[Tuple[str, int, int]], wider_padding: int = 10) -> "Evidence":
+        local_context = ", ".join([span for span, _, _ in evidence_list])
+        widers = []
+        for span, start, end in evidence_list:
+            start = max(0, start - wider_padding)
+            end = min(len(doc), end + wider_padding)
+            widers.append(doc[start:end].text)
+        wider_context = " | ".join(widers)
         return cls(local_context, wider_context)
 
 class CaseField:

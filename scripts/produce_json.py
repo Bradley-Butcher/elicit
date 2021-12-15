@@ -17,6 +17,6 @@ if __name__ == "__main__":
     filenames = []
     for case in cases:
         filenames.append(crown_court_path / case.filename)
-    vector_output = run_ensemble(main_flow, ensemble_args={"mode": "vector"}, pdfs=filenames, question_schema = schema_path / "questions.yml", categories_schema = schema_path / "categories.yml")
+    vector_output = run_ensemble(main_flow, ensemble_args={"mode": "vector"}, pdfs=filenames, question_schema = schema_path / "questions.yml", categories_schema = schema_path / "categories.yml", keyword_schema = schema_path / "keywords.yml")
     with open("sample.json", "w") as outfile:
         json.dump(vector_output, outfile) 
