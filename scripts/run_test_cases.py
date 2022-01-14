@@ -1,0 +1,21 @@
+"""Script which runs the test cases."""
+from pathlib import Path
+
+from case_extraction.utils.example_cases import load_test_cases
+from case_extraction.pipelines import main_flow, run_flow
+
+
+crown_court_path = Path(__file__).parent.parent / "pdfs" / "crown court"
+schema_path = Path(__file__).parent.parent / "schema"
+
+if __name__ == "__main__":
+    cases = load_test_cases()
+    filenames = [crown_court_path / case.filename for case in cases]
+    run_flow(
+        main_flow,
+        ensemble_args={}, 
+        pdfs=filenames, 
+        question_schema = schema_path / "demo_questions.yml", 
+        categories_schema = schema_path / "demo_categories.yml", 
+        keyword_schema = schema_path / "demo_keywords.yml"
+    )

@@ -1,17 +1,17 @@
+"""Script which uses a Sentence Similarity transformer model to assign extracted Q&A pairs to provided categories."""
 from prefect import task
-import yaml
 from transformers import pipeline
 from sentence_transformers import SentenceTransformer, util
 from pathlib import Path
-from typing import DefaultDict, Dict, List, Optional, Tuple, Union
-import re
-import itertools
+from typing import DefaultDict, Dict, List, Tuple, Union
 import warnings
 
 from case_extraction.case import Case, CaseField, Evidence
 
 from case_extraction.components.qa_transformer import extract_answers
-from case_extraction.components.nli_transformer import load_variables, compress
+from case_extraction.components.nli_transformer import compress
+from case_extraction.utils.loading import load_schema
+
 
 warnings.filterwarnings("ignore")
 
@@ -19,6 +19,14 @@ warnings.filterwarnings("ignore")
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def similarity(answer: str, levels: List[str]):
+    """
+    Get the similarity score of each level to the answer.
+
+    :param answer: The answer to compare to the levels.
+    :param levels: The levels to compare to the answer.
+
+    :return: List of (level, similarity score).
+    """
     def _add_prefix(level: List[str]) -> str:
         return [f"this is a {l}" for l in level]
     embeddings = model.encode(_add_prefix([answer, *levels]))
@@ -26,14 +34,24 @@ def similarity(answer: str, levels: List[str]):
     return [(levels[i], s) for i, s in enumerate(sims)]
 
 def match_similarity(answers: List[Tuple[str, float]], doc: str, levels: List[str], threshold: float) -> Union[CaseField, List[CaseField]]:
+    """
+    Find closest level to an answer, must pass threshold.
+    
+    :param answers: List of (answer, similarity score).
+    :param doc: The document answers are extracted from - used to form evidence.
+    :param levels: List of levels to compare to the answers.
+    :param threshold: Threshold for filtering.
+
+    :return: List of CaseFields.
+    """
     if not answers:
-        return CaseField(value=levels[-1], confidence=0.0, evidence=Evidence.no_match())
+        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     candidates = []
     for answer, score, start, end in answers:
         output = similarity(answer, [*levels, ""])
         candidates += [(o, s * score, start, end) for o, s in output if s > threshold]
     if not candidates:
-        return CaseField(value=levels[-1], confidence=0.0, evidence=Evidence.no_match())
+        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     compressed_candidates, context = compress(candidates)
     max_candidate = max(compressed_candidates, key=compressed_candidates.get)
     output = CaseField(
@@ -42,15 +60,22 @@ def match_similarity(answers: List[Tuple[str, float]], doc: str, levels: List[st
         evidence=Evidence.from_character_startend(doc, context[max_candidate]["start"], context[max_candidate]["end"])
     )
     if output.value == "":
-        return CaseField(value=levels[-1], confidence=0.0, evidence=Evidence.no_match())
+        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     return output
 
 
-def filter(answers: Dict[str, Tuple[str, float]], doc:str, categories_schema: Path, threshold: float = 0.7) -> Dict[str, List[str]]:
+def process_answers(answers: Dict[str, Tuple[str, float]], doc:str, categories_schema: Path, threshold: float = 0.7) -> Dict[str, List[str]]:
     """
-    Filter to only include answers that are above a threshold for both retrieval and category matching.
+    Process answers to match answers to categories.
+
+    :param answers: Dict of answers to match to categories.
+    :param doc: The document answers are extracted from - used to form evidence.
+    :param categories_schema: Path to categories schema.
+    :param threshold: Threshold for filtering.
+
+    :return: Dict of variable: CaseFields.
     """
-    variables = load_variables(categories_schema)
+    variables = load_schema(categories_schema)
     extracted_variables = {}
     for key in variables.keys():
         if variables[key] == "continuous":
@@ -71,7 +96,21 @@ def sim_extraction(
     match_threshold: float = 0.3, 
     qa_threshold: float = 0.5, 
 ) -> Case:
+    """
+    Extract variables from doc using a Sentence Similarity transformer model and a Q&A transformer model.
+
+    Q&A transformer (doc) -> Sentence Similarity transformer (categories) -> extracted categories.
+
+    :param doc: The document to extract variables from.
+    :param case: The case to update.
+    :param question_schema: Path to question schema.
+    :param categories_schema: Path to categories schema.
+    :param match_threshold: Threshold for filtering the similarity transformer.
+    :param qa_threshold: Threshold for filtering the Q&A transformer answers.
+
+    :return: Updated case.
+    """
     answers = extract_answers(case=case, doc=doc, question_schema=question_schema, threshold=qa_threshold)
-    answer_dict = filter(answers=answers, doc=doc, categories_schema=categories_schema, threshold=match_threshold)
+    answer_dict = process_answers(answers=answers, doc=doc, categories_schema=categories_schema, threshold=match_threshold)
     case.add_dict(answer_dict)
     return case

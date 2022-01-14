@@ -1,19 +1,25 @@
-import pandas as pd
+"""Script containing functions for loading documents."""
 from pdfminer.pdfinterp import PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator, PDFResourceManager
 from pdfminer.layout import LAParams, LTTextBoxHorizontal
 from pdfminer.pdfpage import PDFPage
 from prefect import task
 from pathlib import Path
-from io import StringIO
-from typing import List, Optional
+from typing import List, Optional, Union
 import logging
 import warnings
+import yaml
 
 logging.getLogger('pdfminer').setLevel(logging.ERROR)
 
 
 def load_pdf(path: Path, pages: Optional[List[int]] = None) -> str:
+    """
+    Load a PDF file into a string.
+
+    :param path: Path to the PDF file.
+    :param pages: List of pages to extract.
+    """
     document = open(str(path.resolve()), "rb")
     # Create resource manager
     rsrcmgr = PDFResourceManager()
@@ -36,30 +42,18 @@ def load_pdf(path: Path, pages: Optional[List[int]] = None) -> str:
                 doc += text
     return doc
 
-
-def _filter_list(l: list) -> list:
-    return [x.replace("\n", " ") for x in l]
-
-
-def load_offense_list() -> List[str]:
-    """
-    Loads the list of offenses from the CSV file.
-    """
-    data_path = Path(__file__).parent.parent / 'data' / 'simple_offenses.csv'
-    offenses = pd.read_csv(open(str(data_path.resolve()), errors='ignore'))
-    return _filter_list(offenses['Offence'].tolist())
-
-
-def load_instrument_list() -> List[str]:
-    """
-    Loads the list of instruments from the CSV file.
-    """
-    data_path = Path(__file__).parent.parent / 'data' / 'offenses.csv'
-    offenses = pd.read_csv(open(str(data_path.resolve()), errors='ignore'))
-    return _filter_list(offenses['Instrument'].tolist())
-
 @task
 def pdf_to_plaintext(pdf_location: Path, pages: Optional[List[int]] = None, newlines: bool = False, raw: bool = False) -> str:
+    """
+    Load a PDF file into a string. Contains some minor post-processing.
+
+    :param pdf_location: Path to the PDF file.
+    :param pages: List of pages to extract.
+    :param newlines: Whether to replace newlines with spaces.
+    :param raw: Whether to return the raw text.
+
+    :return: pdf in plaintext.
+    """
     raw_text = load_pdf(pdf_location, pages=pages)
     if not raw:
         raw_text = raw_text.replace("\xa0", " ")
@@ -67,3 +61,14 @@ def pdf_to_plaintext(pdf_location: Path, pages: Optional[List[int]] = None, newl
         if not newlines:
             raw_text = raw_text.replace("\n", "")
     return raw_text
+
+def load_schema(schema_path: Path) -> dict[str, Union[str, List[str]]]:
+    """
+    Load a schema from a YAML file.
+
+    :param schema_path: Path to the YAML file.
+
+    :return: Schema as a dictionary.
+    """
+    with open(schema_path, "r") as f:
+        return yaml.safe_load(f)

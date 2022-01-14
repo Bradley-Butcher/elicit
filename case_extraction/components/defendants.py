@@ -1,3 +1,4 @@
+"""Script which extracts the defendants' names using various methods."""
 import itertools
 from pathlib import Path
 from typing import List, Set
@@ -9,6 +10,11 @@ from case_extraction.case import Case, CaseField, Evidence
 
 
 def _flatten(l: List[List[str]]) -> List[str]:
+    """
+    Flattens a list of lists into a single list.
+
+    :param l: The list of lists to flatten.
+    """
     if isinstance(l[0], str):
         return l
     return list(itertools.chain.from_iterable(l))
@@ -17,6 +23,8 @@ def _flatten(l: List[List[str]]) -> List[str]:
 def extract_defendants_filename(filename: str) -> List[str]:
     """
     Extracts the defendents' names from the filename.
+
+    :param filename: The filename to extract the names from.
     """
     splitter = None
     if "_v_" in filename.lower():
@@ -38,6 +46,8 @@ def extract_defendants_filename(filename: str) -> List[str]:
 def extract_defendants_regex(doc: str) -> List[str]:
     """
     Extracts the names from the document.
+
+    :param doc: The document to extract the names from.
     """
     matches = re.findall(r".+ -v- (.+)\n", doc) + \
         re.findall(r".+ v (.+)\n", doc) + \
@@ -60,9 +70,14 @@ def extract_defendants_regex(doc: str) -> List[str]:
 def get_defendants(filename: Path, doc: str, case: Case) -> Case:
     """
     Gets the defendant names from the document or filename.
+    Adds the extracted names to the passed case object.
+
+    :param filename: The filename to extract the names from.
+    :param doc: The document to extract the names from.
+    :param case: The case to add the names to.
     """
     result = extract_defendants_filename(filename.stem)
     if not result:
         result = extract_defendants_regex(doc)
-    case.defendants =  CaseField(value=result[0], confidence=1.0, evidence=Evidence(local_context=str(filename.stem), wider_context=str(filename.stem)))
+    case.defendants =  CaseField(value=result[0], confidence=1.0, evidence=Evidence(exact_context=str(filename.stem), local_context=str(filename.name), wider_context=str(filename.name)))
     return case

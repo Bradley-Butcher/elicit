@@ -17,6 +17,8 @@ torch = "^1.10.0"
 sentence-transformers = "^2.1.0"
 datasets = "^1.15.1"
 prefect = ">=2.0.0a"
+Flask = "^2.0.2"
+Flask-Cors = "^3.0.10"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

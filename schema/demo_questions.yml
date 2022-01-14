@@ -1,0 +1,30 @@
+offenses: 
+  - What crime was commited?
+  - What was the conviction?
+  - What offense was commited?
+  - Did a murder take place?
+  - Did someone commit manslaughter?
+  - Did rape take place?
+vulnerable_victim:
+  - Is the victim vulnerable?
+  - Was the victim of the crime vulnerable?
+  - victim vulnerable?
+  - was the victim young?
+  - was the victim old?
+race_aggrevating:
+  - Was there a racist motivation for the crime?
+  - Was the crime aggrevated by racism?
+  - racism?
+  - was the victim a minority?
+  - was the victim black?
+  - was the victim a muslim?
+victim_sex:
+  - Was the victim a male?
+  - Was the victim a female?
+  - What gender was the victim?
+  - Was the victim a girl?
+  - Was the victim a boy?
+victim_age:
+  - What age was the victim?
+  - How old was the victim?
+  - How many years old was the victim?

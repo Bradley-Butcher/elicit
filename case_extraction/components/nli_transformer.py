@@ -1,3 +1,4 @@
+"""Script which uses a Natural Language Inference transfomer model assign extracted Q&A pairs to provided categories."""
 from prefect import task
 import yaml
 from transformers import pipeline
@@ -10,6 +11,7 @@ import warnings
 from case_extraction.case import Case, CaseField, Evidence
 
 from case_extraction.components.qa_transformer import extract_answers
+from case_extraction.utils.loading import load_schema
 
 warnings.filterwarnings("ignore")
 
@@ -17,16 +19,20 @@ classifier = pipeline("zero-shot-classification",
                       model="facebook/bart-large-mnli", device=0)
 
 
-def load_variables(schema_path: Path) -> Dict[str, Union[str, List[str]]]:
-    with open(schema_path, "r") as f:
-        return yaml.safe_load(f)
-
-
 def extract_value(answers: List[Tuple[str, float, int, int]], doc: str, threshold: float) -> Union[CaseField, List[CaseField]]:
+    """
+    Extract numerical value from the output Q&A Transformer, only used if variable category is assigned as "continuous".
+
+    :param answers: List of answers from Q&A Transformer.
+    :param doc: Document string.
+    :param threshold: Threshold for the Q&A Transformer. Only answers above this threshold are considered.
+
+    :return: Either CaseField object with the extracted value, or a list of CaseField objects with the extracted values. Depending on the number of valid answers.
+    """
     values = [(re.findall(r'\d+', answer)[0], score, start, end)
               for answer, score, start, end in answers if score > threshold and re.findall(r'\d+', answer)]
     if not values:
-        return "unknown", 0.0
+        return CaseField(value="unknown", confidence=0, evidence=Evidence.no_match())
     values, context = compress(values)
     output = [CaseField(value=k, confidence=v, evidence=Evidence.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in values.items()]
     if len(output) == 1:
@@ -35,6 +41,14 @@ def extract_value(answers: List[Tuple[str, float, int, int]], doc: str, threshol
 
 
 def compress(candidates: List[Tuple[str, float, int, int]]) -> Dict[str, float]:
+    """
+    Compress the list of candidate answers, summing the probabilities where the answer is the same.
+    Context returned is the max of the same answer.
+
+    :param candidates: List of candidate answers. Form is [(answer, score, start, end)]. Multiple answers can be the same, but coming from different parts of the document. These are summed together.
+
+    :return: Dictionary of answers and their probabilities.
+    """
     prob_dict = DefaultDict(float)
     prob_sum = 0.0
     max_context = {}
@@ -51,9 +65,16 @@ def compress(candidates: List[Tuple[str, float, int, int]]) -> Dict[str, float]:
 def match_classify(answers: List[Tuple[str, float]], doc: str, levels: List[str], threshold: float) -> Tuple[str, float]:
     """
     Match answers from the Q&A Transformer to the levels of the variable.
+
+    :param answers: List of answers from Q&A Transformer.
+    :param doc: Document string.
+    :param levels: List of levels for the variable.
+    :param threshold: Threshold for the Q&A Transformer. Only answers above this threshold are considered.
+
+    :return: Tuple of the matched level and the confidence of the match.
     """
     if not answers:
-        return CaseField(value=levels[-1], confidence=0.0, evidence=Evidence.no_match())
+        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     candidates = []
     for answer, score, start, end in answers:
         if answer in levels:
@@ -63,7 +84,7 @@ def match_classify(answers: List[Tuple[str, float]], doc: str, levels: List[str]
             candidates += [(output["labels"][i], output["scores"][i] * score, start, end)
                         for i in range(len(output["labels"])) if output["scores"][i] > threshold]
     if not candidates:
-        return CaseField(value=levels[-1], confidence=0.0, evidence=Evidence.no_match())
+        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     compressed_candidates, context = compress(candidates)
     max_candidate = max(compressed_candidates, key=compressed_candidates.get)
     output = CaseField(
@@ -72,22 +93,38 @@ def match_classify(answers: List[Tuple[str, float]], doc: str, levels: List[str]
         evidence=Evidence.from_character_startend(doc, context[max_candidate]["start"], context[max_candidate]["end"])
     )
     if output.value == "":
-        return CaseField(value=levels[-1], confidence=0.0, evidence=Evidence.no_match())
+        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     return output
 
 
 def extract_top(answers: List[Tuple[str, float, int, int]], doc: str) -> List[CaseField]:
+    """
+    Extract top answer from Q&A Transformer. This is used if variable category is assigned as "raw".
+
+    :param answers: List of answers from Q&A Transformer.
+    :param doc: Document string.
+
+    :return: List of CaseField objects with the extracted values.
+    """
     if not answers:
-        return CaseField(value="unknown", confidence=0.0, evidence=Evidence.no_match())
+        return CaseField(value="unknown", confidence=0, evidence=Evidence.no_match())
     answers, context = compress(answers)
     return [CaseField(value=k, confidence=v, evidence=Evidence.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in answers.items()]
 
 
-def filter(answers: Dict[str, Tuple[str, float, int, int]], doc: str, categories_schema: Path, threshold: float = 0.7) -> Dict[str, List[str]]:
+def process_answers(answers: Dict[str, Tuple[str, float, int, int]], doc: str, categories_schema: Path, threshold: float = 0.7) -> Dict[str, List[str]]:
     """
-    Filter to only include answers that are above a threshold for both retrieval and category matching.
+    Process the answers from the Q&A Transformer. 
+    Assigns Categorical variables to provided categories, extracts numerical values for continuous variables, and extracts top answers for raw variables.
+
+    :param answers: Dictionary of answers from Q&A Transformer.
+    :param doc: Document string.
+    :param categories_schema: Path to the categories schema.
+    :param threshold: Threshold for the Q&A Transformer. Only answers above this threshold are considered.
+
+    :return: Dictionary of answers and their values.
     """
-    variables = load_variables(categories_schema)
+    variables = load_schema(categories_schema)
     extracted_variables = {}
     for key in variables.keys():
         if variables[key] == "continuous":
@@ -108,7 +145,19 @@ def nli_extraction(
     match_threshold: float = 0.3, 
     qa_threshold: float = 0.5, 
 ) -> Case:
+    """
+    Task for using NLI to extract variables from a document.
+
+    :param doc: Document string.
+    :param case: Case object to add extracted variables to.
+    :param question_schema: Path to the question schema.
+    :param categories_schema: Path to the categories schema.
+    :param match_threshold: Threshold for the NLI Transformer. Only answers above this threshold are considered.
+    :param qa_threshold: Threshold for the Q&A Transformer. Only answers above this threshold are considered.
+
+    :return: Case object with extracted variables.
+    """
     answers = extract_answers(doc=doc, case=case, question_schema=question_schema, threshold=qa_threshold)
-    answer_dict = filter(answers, doc=doc, categories_schema=categories_schema, threshold=match_threshold)
+    answer_dict = process_answers(answers, doc=doc, categories_schema=categories_schema, threshold=match_threshold)
     case.add_dict(answer_dict)
     return case

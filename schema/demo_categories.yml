@@ -1,0 +1,16 @@
+offenses:
+  - murder
+  - rape
+  - manslaughter
+  - other
+vulnerable_victim:
+  - vulnerable
+  - not vulnerable
+race_aggrevating:
+  - race an aggrevating factor
+  - race not an aggrevating factor
+victim_sex:
+  - male
+  - female
+  - unknown
+victim_age: continuous

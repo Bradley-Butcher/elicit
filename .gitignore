@@ -1,3 +1,6 @@
+user_interface/client/node_modules
+user_interface/client/package-lock.json
+
 __pycache__/
 *.py[cod]
 *$py.class

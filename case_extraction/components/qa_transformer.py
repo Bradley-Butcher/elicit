@@ -1,11 +1,12 @@
-import yaml
+"""Script to extract answers from a document using a Q&A Transformer model."""
 from transformers import pipeline, AutoModelForQuestionAnswering, AutoTokenizer
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 import itertools
 import warnings
 
 from case_extraction.case import Case
+from case_extraction.utils.loading import load_schema
 
 warnings.filterwarnings("ignore")
 
@@ -14,12 +15,15 @@ model = AutoModelForQuestionAnswering.from_pretrained(
     str(model_path.resolve()))
 tokenizer = AutoTokenizer.from_pretrained("deepset/roberta-base-squad2")
 
-def load_questions(schema_path: Path) -> Dict[str, List[str]]:
-    with open(schema_path, "r") as f:
-        return yaml.safe_load(f)
-
 
 def _flatten_answers(answers: Union[List[Dict], List[List[Dict]]]) -> List[Dict]:
+    """
+    Flatten a list of answers.
+
+    :param answers: List of lists of answers.
+
+    :return: Flattened list of answers.
+    """
     if isinstance(answers[0], dict):
         return answers
     else:
@@ -27,17 +31,31 @@ def _flatten_answers(answers: Union[List[Dict], List[List[Dict]]]) -> List[Dict]
 
 
 def _filter_candidates(answers: List[dict], threshold: float = 0.5) -> str:
+    """
+    Filter candidates based on their score.
+
+    :param answers: List of candidates.
+    :param threshold: Threshold for filtering.
+
+    :return: Filtered list of candidates.
+    """
     answers = _flatten_answers(answers=answers)
     return [(a["answer"], a["score"], a["start"], a["end"]) for a in answers if a["score"] > threshold]
 
 
-def _subsitute_defendant(question: str, defendant: str):
-    question = question.replace("offender", defendant)
-    return question
-
-
 def extract_answers(doc: str, case: Case, question_schema: Path, topk: int = 5, threshold: float = 0.3) -> Dict[str, Tuple[str, float, int, int]]:
-    questions = load_questions(question_schema)
+    """
+    Extract answers from a document using a Q&A Transformer model.
+
+    :param doc: Document to extract answers from.
+    :param case: Case object to substitute <masked> tokens in the question. e.g. "What crime did <defendant> commit" replaces <defendant> with case.defendant.
+    :param question_schema: Path to the question schema.
+    :param topk: Number of answers to return.
+    :param threshold: Threshold for filtering.
+
+    :return: Dictionary of answers.
+    """
+    questions = load_schema(question_schema)
     nlp = pipeline('question-answering',
                    model=model, tokenizer=tokenizer, device=0)
     answers = {}

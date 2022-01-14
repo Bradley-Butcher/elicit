@@ -6,12 +6,26 @@ import json
 from case_extraction.case import Case, CaseField
 
 def get_gender_from_api(name: str) -> dict:
+    """
+    Query genderize api to get gender from name.
+
+    :param name: name to find gender for.
+
+    :return: dict of gender: score
+    """
     request = requests.get(f"https://api.genderize.io?name={name}")
     results = json.loads(request.text)
     return results
 
 @task
 def sex_from_name(case: Case) -> Case:
+    """
+    Get sex from name.
+
+    :param case: The case to update with the sex.
+
+    :returns: the updated case object.
+    """
 
     if isinstance(case.victims, list):
         victim_fname = [v.value.split(" ")[0] for v in case.victims]

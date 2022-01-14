@@ -1,0 +1,70 @@
+offenses:
+  murder:
+    - murder
+    - killed
+  rape:
+    - rape
+    - sexual
+    - sex
+  manslaughter:
+    - manslaughter
+    - killed
+    - accidental death
+  other: 
+  - fraud
+  - computer misuse
+  - wounding with intent
+  - attempted murder
+  - grievous bodily harm with intent
+  - grievous bodily harm
+  - sexual crimes
+  - misconduct in public office
+  - robbery
+  - administering a poison or noxious substance
+  - making indecent images of children
+  - attempting to meet a child following sexual grooming
+  - sexual activity with a child
+  - causing a child to engage in sexual activity
+  - sexual assault of a child under 13
+  - access the voicemails of other people
+  - conspiracy to defraud
+  - possessing criminal property
+  - violent disorder
+  - burglary
+  - theft
+  - acquiring a biological toxin
+  - preventing the lawful and decent burial
+  - sexual offences
+  - false accounting
+  - causing an explosion with an intent to endanger life
+  - engaging in conduct in preparation of terrorist acts
+vulnerable_victim:
+  vulnerable:
+    - vulnerable
+    - weak
+    - old
+    - young
+  not vulnerable:
+    - not vulnerable
+race_aggrevating:
+  race an aggrevating factor:
+    - race an aggrevating factor
+    - racist
+    - hate crime
+    - race
+    - black
+    - muslim
+    - minority
+    - white
+  race not an aggrevating factor:
+    - race not an aggrevating factor
+    - not a hate crime
+victim_sex:
+  male:
+    - man
+    - male
+    - boy
+  female:
+    - female
+    - woman
+    - girl
