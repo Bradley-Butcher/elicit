@@ -7,7 +7,7 @@ import spacy
 from spacy.language import Language
 from tqdm import tqdm
 
-from case_extraction.utils.utils import context_from_doc_char
+from elicit.utils.utils import context_from_doc_char
 
 @dataclass
 class Evidence:

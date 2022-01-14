@@ -4,7 +4,7 @@ from typing import Dict, Set, Tuple
 from spacy.language import Language
 from spacy.tokens import Doc
 
-from case_extraction.loading import load_offense_list
+from elicit.loading import load_offense_list
 
 import spacy
 from spacy.language import Language

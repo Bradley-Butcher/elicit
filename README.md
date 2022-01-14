@@ -1,21 +1,28 @@
 
 
-<div style="text-align:center;">
+<p align="center">
 <img src="user_interface/client/src/assets/elecit.png" alt="drawing" width="300"/>
-</div>
+</p>
 <hr>
 
 *elicit (v.) "to draw out, bring forth or to light"*
 
 Elicit is a *human in the loop* machine learning tool for extracting information from complex documents.
 
-The tool works in a similar manner to weak supervision approaches, such as Snorkel or Sqweak, where the output from a set of *labelling functions* are combined to form a distribution over possible labels. 
+The tool works in a similar manner to weak supervision approaches, such as [Snorkel](https://github.com/snorkel-team/snorkel) or [Sqweak](https://github.com/NorskRegnesentral/skweak), where the output from a set of *labelling functions* are combined to form a distribution over possible labels. 
+
+<p align="center">
+<img src="pipeline.png" alt="drawing" width="60%"/>
+</p>
 
 In Elicit, rather than using a generative model, the output from labelling functions are piped into a user inferface. Users then select the correct answer dependent on provided evidence.
 
-<div style="text-align:center;">
+<p align="center">
 <img src="example1.gif" alt="drawing" width="60%"/>
-</div>
+</p>
+
+These annotations can then be exported into a tabular dataset. Rather than fully automate, our goal is to dramatically speed up the manual extraction process.
+
 
 The core tenets of Elicit are:
 
@@ -58,9 +65,9 @@ python server/app.py
 cd user_interface/client
 npm run serve 
 ```
-### Defining a Schema
+### Defining Schemas
 
-In order to extract a variable from a transcript, you must define:
+The existing labelling functions in Elicit have been designed to be "zero-shot". There is no training data required to get started. You therefore must define a set of schemas to 
 
 - A set of questions to ask in order to extract the information.
 - A set categories which the answer can take (alternatively "raw" or "continuous" if the answer is a string or number respectively).
@@ -78,6 +85,17 @@ offender_confession:
 offender_confession:
   - confession
   - no confession
+  ```
+
+**Keywords:**
+```
+offender_confession:
+  confession:
+    - confessed
+    - plead guilty
+    - pleaded guilty
+  no confession:
+    - denied
   ```
 
 These are placed into the yaml files "categories.yml" and "questions.yml" respectively.

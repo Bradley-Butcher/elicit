@@ -1,8 +1,8 @@
 """Script which runs the test cases."""
 from pathlib import Path
 
-from case_extraction.utils.example_cases import load_test_cases
-from case_extraction.pipelines import main_flow, run_flow
+from elicit.utils.example_cases import load_test_cases
+from elicit.pipelines import main_flow, run_flow
 
 
 crown_court_path = Path(__file__).parent.parent / "pdfs" / "crown court"

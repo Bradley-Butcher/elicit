@@ -8,8 +8,8 @@ import spacy
 from spacy.matcher import PhraseMatcher
 from prefect import task
 
-from case_extraction.case import Case, CaseField, Evidence
-from case_extraction.utils.loading import load_schema
+from elicit.case import Case, CaseField, Evidence
+from elicit.utils.loading import load_schema
 
 
 def exact_match_single(doc: str, keywords: Dict[str, List[str]]) -> List[CaseField]:

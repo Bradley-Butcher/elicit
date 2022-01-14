@@ -2,9 +2,9 @@ from pathlib import Path
 from typing import Set
 import pytest
 
-from case_extraction.case import Case
-from case_extraction.charges import extract_charges, offense_focused_extraction
-from case_extraction.loading import pdf_to_plaintext
+from elicit.case import Case
+from elicit.charges import extract_charges, offense_focused_extraction
+from elicit.loading import pdf_to_plaintext
 
 from .example_cases import load_train_cases
 

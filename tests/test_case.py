@@ -1,7 +1,7 @@
 """Script to test the case module."""
 import pytest
 
-from case_extraction.case import Evidence
+from elicit.case import Evidence
 
 def test_no_evidence_match():
     """
@@ -49,7 +49,7 @@ def test_case_field():
     """
     Tests that the case_extraction.case.CaseField class can handle no evidence.
     """
-    from case_extraction.case import CaseField
+    from elicit.case import CaseField
     field = CaseField(value="test", confidence=0.5, evidence=Evidence.no_match())
     assert field.value == "test"
     assert field.confidence == 0.5
@@ -61,8 +61,8 @@ def test_case():
     """
     Tests that the case_extraction.case.Case class can handle no evidence.
     """
-    from case_extraction.case import Case
-    from case_extraction.case import CaseField
+    from elicit.case import Case
+    from elicit.case import CaseField
     case = Case(filename="test.pdf", method="test")
     case.add_field("test", CaseField(value="test_value", confidence=0.5, evidence=Evidence.no_match()))
     assert case.filename == "test.pdf"
@@ -78,8 +78,8 @@ def test_case_add_dict():
     """
     Tests that the case_extraction.case.Case add_dict function adds casefields to the case.
     """
-    from case_extraction.case import Case
-    from case_extraction.case import CaseField
+    from elicit.case import Case
+    from elicit.case import CaseField
     case = Case(filename="test.pdf", method="test")
     case.add_dict({"test": CaseField(value="test_value", confidence=0.5, evidence=Evidence.no_match())})
     assert case.filename == "test.pdf"

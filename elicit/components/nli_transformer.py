@@ -8,10 +8,10 @@ import re
 import itertools
 import warnings
 
-from case_extraction.case import Case, CaseField, Evidence
+from elicit.case import Case, CaseField, Evidence
 
-from case_extraction.components.qa_transformer import extract_answers
-from case_extraction.utils.loading import load_schema
+from elicit.components.qa_transformer import extract_answers
+from elicit.utils.loading import load_schema
 
 warnings.filterwarnings("ignore")
 

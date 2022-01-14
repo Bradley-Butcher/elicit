@@ -3,7 +3,7 @@ from prefect import task
 import requests
 import json
 
-from case_extraction.case import Case, CaseField
+from elicit.case import Case, CaseField
 
 def get_gender_from_api(name: str) -> dict:
     """

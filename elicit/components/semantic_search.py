@@ -4,8 +4,8 @@ from sentence_transformers import SentenceTransformer, util
 from prefect import task
 import yaml
 
-from case_extraction.case import Case, CaseField, Evidence
-from case_extraction.utils.loading import load_schema
+from elicit.case import Case, CaseField, Evidence
+from elicit.utils.loading import load_schema
 
 model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
 

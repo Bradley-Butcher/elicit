@@ -5,8 +5,8 @@ def test_output_get_vector():
     """
     Test the get_vector method of the Output class.
     """
-    from case_extraction.vectorizer import Output
-    from case_extraction.case import Evidence
+    from elicit.vectorizer import Output
+    from elicit.case import Evidence
     output = Output(["method1", "method2"], [1, 2], [Evidence.no_match(), Evidence.no_match()])
     assert output.get_vector("method1") == 1
     assert output.get_vector("method2") == 2
@@ -15,8 +15,8 @@ def test_output_get_evidence():
     """
     Test the get_evidence method of the Output class.
     """
-    from case_extraction.vectorizer import Output
-    from case_extraction.case import Evidence
+    from elicit.vectorizer import Output
+    from elicit.case import Evidence
     output = Output(["method1", "method2"], [1, 2], [Evidence.no_match(), Evidence.no_match()])
     assert output.get_evidence("method1") == Evidence.no_match()
     assert output.get_evidence("method2") == Evidence.no_match()
@@ -25,8 +25,8 @@ def test_vectorizer_match_cases():
     """
     Test the match_cases method of the Vectorizer class.
     """
-    from case_extraction.vectorizer import Vectorizer
-    from case_extraction.case import Case, CaseField, Evidence
+    from elicit.vectorizer import Vectorizer
+    from elicit.case import Case, CaseField, Evidence
     vectorizer = Vectorizer()
     case_1 = Case(filename="test.pdf", method="test_method")
     case_1.add_field("test", CaseField(value="test_value", confidence=0.5, evidence=Evidence.no_match()))
@@ -40,8 +40,8 @@ def test_vectorizer_apply_weighting():
     """
     Test the apply_weighting method of the Vectorizer class.
     """
-    from case_extraction.vectorizer import Vectorizer
-    from case_extraction.case import Case, CaseField, Evidence
+    from elicit.vectorizer import Vectorizer
+    from elicit.case import Case, CaseField, Evidence
     vectorizer = Vectorizer(flow_weighting={"test_method": 2})
     case_1 = Case(filename="test.pdf", method="test_method")
     case_1.add_field("test", CaseField(value="test_value", confidence=0.5, evidence=Evidence.no_match()))
@@ -52,8 +52,8 @@ def test_vectorizer_identify_methods():
     """
     Test the identify_methods method of the Vectorizer class.
     """
-    from case_extraction.vectorizer import Vectorizer
-    from case_extraction.case import Case, CaseField, Evidence
+    from elicit.vectorizer import Vectorizer
+    from elicit.case import Case, CaseField, Evidence
     vectorizer = Vectorizer()
     case_1 = Case(filename="test.pdf", method="test_method")
     case_1.add_field("test", CaseField(value="test_value", confidence=0.5, evidence=Evidence.no_match()))
@@ -68,8 +68,8 @@ def test_vectorizer_get_output_value():
     """
     Test the get_output_value method of the Vectorizer class.
     """
-    from case_extraction.vectorizer import Vectorizer
-    from case_extraction.case import Case, CaseField, Evidence
+    from elicit.vectorizer import Vectorizer
+    from elicit.case import Case, CaseField, Evidence
     vectorizer = Vectorizer()
     case_1 = Case(filename="test.pdf", method="test_method")
     case_1.add_field("test", CaseField(value="test_value", confidence=0.7, evidence=Evidence.no_match()))
@@ -86,8 +86,8 @@ def test_vectorizer_get_value_list():
     """
     Test the get_value_list method of the Vectorizer class.
     """
-    from case_extraction.vectorizer import Vectorizer
-    from case_extraction.case import Case, CaseField, Evidence
+    from elicit.vectorizer import Vectorizer
+    from elicit.case import Case, CaseField, Evidence
     vectorizer = Vectorizer()
     case_1 = Case(filename="test.pdf", method="test_method")
     case_1.add_field("test", CaseField(value="test_value", confidence=0.7, evidence=Evidence.no_match()))
@@ -101,8 +101,8 @@ def test_vectorize():
     """
     Test the vectorize method of the Vectorizer class.
     """
-    from case_extraction.vectorizer import Vectorizer
-    from case_extraction.case import Case, CaseField, Evidence
+    from elicit.vectorizer import Vectorizer
+    from elicit.case import Case, CaseField, Evidence
     vectorizer = Vectorizer()
     case_1 = Case(filename="test.pdf", method="test_method")
     case_1.add_field("test", CaseField(value="test_value", confidence=0.7, evidence=Evidence.no_match()))

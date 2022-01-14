@@ -1,6 +1,6 @@
 """Script which merges multiple cases and stores them in a database."""
 from typing import Dict, List, Set, Tuple
-from case_extraction.case import Case, CaseField, Evidence
+from elicit.case import Case, CaseField, Evidence
 from dataclasses import asdict, dataclass
 from database.db_utils import connect_db, insert_doc_from_dict
 

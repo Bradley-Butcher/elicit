@@ -8,16 +8,16 @@ from prefect import flow
 
 from pathlib import Path
 from prefect.flows import Flow
-from case_extraction.case import Case
-from case_extraction.components.keyword_search import exact_match
+from elicit.case import Case
+from elicit.components.keyword_search import exact_match
 
-from case_extraction.components.nli_transformer import nli_extraction
-from case_extraction.components.similarity_transformer import sim_extraction
-from case_extraction.components.defendants import get_defendants
-from case_extraction.components.regex import get_defendants_regex, get_victims_regex
-from case_extraction.components.semantic_search import search
-from case_extraction.vectorizer import Vectorizer
-from case_extraction.utils.loading import pdf_to_plaintext
+from elicit.components.nli_transformer import nli_extraction
+from elicit.components.similarity_transformer import sim_extraction
+from elicit.components.defendants import get_defendants
+from elicit.components.regex import get_defendants_regex, get_victims_regex
+from elicit.components.semantic_search import search
+from elicit.vectorizer import Vectorizer
+from elicit.utils.loading import pdf_to_plaintext
 
 @flow(name="nli_flow")
 def nli_flow(doc: str, pdf: Path, question_schema: Path, categories_schema: Path):

@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 import itertools
 import warnings
 
-from case_extraction.case import Case
-from case_extraction.utils.loading import load_schema
+from elicit.case import Case
+from elicit.utils.loading import load_schema
 
 warnings.filterwarnings("ignore")
 

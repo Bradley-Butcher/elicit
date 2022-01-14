@@ -6,7 +6,7 @@ import re
 
 from prefect import task
 
-from case_extraction.case import Case, CaseField, Evidence
+from elicit.case import Case, CaseField, Evidence
 
 
 def _flatten(l: List[List[str]]) -> List[str]:

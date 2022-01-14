@@ -1,7 +1,7 @@
 """Script which contains some manually labelled cases for testing purposes."""
 from pathlib import Path
 from typing import List
-from case_extraction.case import Case
+from elicit.case import Case
 
 
 def load_test_cases() -> List[Case]:
