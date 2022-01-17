@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "case_extraction"
+name = "elicit"
 version = "0.1.0"
-description = ""
+description = "Elicit is a human in the loop machine learning tool for extracting information from complex documents."
 authors = ["bradley-butcher <bradleydpbutcher@gmail.com>"]
 
 [tool.poetry.dependencies]
@@ -16,7 +16,6 @@ transformers = "^4.12.3"
 torch = "^1.10.0"
 sentence-transformers = "^2.1.0"
 datasets = "^1.15.1"
-prefect = ">=2.0.0a"
 Flask = "^2.0.2"
 Flask-Cors = "^3.0.10"
 

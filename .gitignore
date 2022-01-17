@@ -1,5 +1,6 @@
 user_interface/client/node_modules
 user_interface/client/package-lock.json
+poetry.lock
 
 __pycache__/
 *.py[cod]
