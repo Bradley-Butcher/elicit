@@ -1,10 +1,8 @@
 """Script which extracts the defendants' names using various methods."""
 import itertools
 from pathlib import Path
-from typing import List, Set
+from typing import List
 import re
-
-from prefect import task
 
 from elicit.document import Document, DocumentField, Evidence
 
@@ -66,7 +64,7 @@ def extract_defendants_regex(doc: str) -> List[str]:
     names = filter(None, names)
     return [n.strip().lower() for n in names]
 
-@task
+
 def get_defendants(filename: Path, doc: str, case: Document) -> Document:
     """
     Gets the defendant names from the document or filename.

@@ -12,7 +12,7 @@ if __name__ == "__main__":
     cases = load_test_cases()
     filenames = [crown_court_path / case.filename for case in cases]
     demo_pipeline(
-        pdfs=filenames, 
+        pdfs=filenames[:1], 
         question_schema = schema_path / "demo_questions.yml", 
         categories_schema = schema_path / "demo_categories.yml", 
         keyword_schema = schema_path / "demo_keywords.yml"

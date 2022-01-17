@@ -1,9 +1,7 @@
 """Script which searches for keywords (from a schema) in a document."""
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
-from spacy.language import Language
+from typing import Dict, List
 
-import yaml
 import spacy
 from spacy.matcher import PhraseMatcher
 

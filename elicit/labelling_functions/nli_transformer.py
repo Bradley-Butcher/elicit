@@ -2,23 +2,20 @@
 import yaml
 from transformers import pipeline
 from pathlib import Path
-from typing import DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import DefaultDict, Dict, List, Tuple, Union
 import re
-import itertools
 import warnings
 
 from elicit.document import Document, DocumentField, Evidence
 
-from elicit.components.qa_transformer import extract_answers
+from elicit.labelling_functions.qa_transformer import extract_answers
 from elicit.utils.loading import load_schema
 from elicit.pipeline import labelling_function
 
 
 warnings.filterwarnings("ignore")
 
-classifier = pipeline("zero-shot-classification",
-                      model="facebook/bart-large-mnli", device=0)
-
+classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=0)
 
 def extract_value(answers: List[Tuple[str, float, int, int]], doc: str, threshold: float) -> Union[DocumentField, List[DocumentField]]:
     """
@@ -144,7 +141,8 @@ def nli_extraction(
     question_schema: Path, 
     categories_schema: Path, 
     match_threshold: float = 0.3, 
-    qa_threshold: float = 0.5, 
+    qa_threshold: float = 0.5,
+    device=None
 ) -> Document:
     """
     Task for using NLI to extract variables from a document.

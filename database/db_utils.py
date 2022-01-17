@@ -2,6 +2,7 @@
 import sqlite3
 from pathlib import Path
 import json
+from typing import List
 
 db_path = Path(__file__).parent / "db.sqlite"
 schema_path = Path(__file__).parent / "db_schema.sql"
@@ -64,24 +65,92 @@ def get_next_id(db, table: str) -> int:
     val = query_db(db, query)[0][0]
     return val + 1 if val is not None else 0
 
-def insert_doc_from_dict(db, doc_name: str, doc_dict: dict) -> None:
+def doc_in_table(db, doc_name: str) -> bool:
     """
-    Insert a doc from a dictionary.
+    Check if a document is in the database.
 
     :param db: Connection to the database.
     :param doc_name: Name of the document.
-    :param doc_dict: Dictionary containing the extracted elements from the document to add to the DB.
+
+    :return: True if the document is in the database, False otherwise.
+    """
+    query = f"SELECT document_id FROM document WHERE document_name = '{doc_name}' LIMIT 1"
+    return True if query_db(db, query) else False
+
+def get_variables_for_doc(db, doc_id: int, values: List[str]) -> list:
+    """
+    Get the variables for a document.
+
+    :param db: Connection to the database.
+    :param doc_id: ID of the document.
+
+    :return: List of variables for the document.
+    """
+    query = f"SELECT {', '.join(values)} FROM variable WHERE document_id = {doc_id}"
+    return query_db(db, query)
+
+def delete_doc(db, doc_name: str, delete_if_human_response: bool = False) -> None:
+    """
+    Delete a document from the database.
+
+    :param db: Connection to the database.
+    :param doc_name: Name of the document.
+    :param delete_if_human_response: Whether to delete the document if it is a human response.
 
     :return: None
     """
+    if delete_if_human_response:
+        query = f"DELETE FROM document WHERE document_name = '{doc_name}'"
+        db.execute(query)
+    doc_id = get_doc_id(db, doc_name)
+    variables = get_variables_for_doc(db, doc_id, ["variable_id", "human_response"])
+    deleted_vars = 0
+    for var in variables:
+        var_id, human_response = var
+        if not human_response:
+            query = f"DELETE FROM variable WHERE variable_id = '{var_id}'"
+            db.execute(query)
+            deleted_vars += 1
+    if len(variables) == deleted_vars:
+        query = f"DELETE FROM document WHERE document_id = '{doc_id}'"
+        db.execute(query)
+        
+def get_doc_id(db, doc_name: str) -> int:
+    """
+    Get the ID of a document.
+
+    :param db: Connection to the database.
+    :param doc_name: Name of the document.
+
+    :return: ID of the document.
+    """
+    query = f"SELECT document_id FROM document WHERE document_name = '{doc_name}' LIMIT 1"
+    return query_db(db, query)[0][0]
+
+
+def variable_in_table(db, var_name: str, variable_value: str, document_id: int) -> bool:
+    """
+    Check if a variable is in the database.
+
+    :param db: Connection to the database.
+    :param var_name: Name of the variable.
+
+    :return: True if the variable is in the database, False otherwise.
+    """
+    query = f"SELECT variable_id FROM variable WHERE variable_name = '{var_name}' AND variable_value = '{variable_value}' AND document_id = {document_id} LIMIT 1"
+    return True if query_db(db, query) else False
+
+
+def insert_new_doc(db, doc_name: str, doc_dict: dict) -> None:
     values = list(doc_dict.keys())
-    #Insert Document
     next_doc_id = get_next_id(db, 'document')
     document_query = f"INSERT INTO document (document_id, document_name) VALUES ({next_doc_id}, '{doc_name}')"
     db.execute(document_query)
     #Insert Variables
     for var in values:
         for val in doc_dict[var].keys():
+            if variable_in_table(db, var, val, next_doc_id):
+                continue
             next_var_id = get_next_id(db, 'variable')
             var_query = f"INSERT INTO variable (variable_id, variable_name, variable_value, document_id) VALUES ({next_var_id}, '{var}', '{val}', {next_doc_id})"
             db.execute(var_query)
@@ -95,6 +164,21 @@ def insert_doc_from_dict(db, doc_name: str, doc_dict: dict) -> None:
                         db.execute(extraction_query)
                     except:
                         print("Database error. Duplicate case? Use update method to update existing cases.")
+
+def insert_doc_from_dict(db, doc_name: str, doc_dict: dict, delete_if_human_response: bool = False) -> None:
+    """
+    Insert a doc from a dictionary.
+
+    :param db: Connection to the database.
+    :param doc_name: Name of the document.
+    :param doc_dict: Dictionary containing the extracted elements from the document to add to the DB.
+
+    :return: None
+    """
+    #Insert Document
+    if doc_in_table(db, doc_name):
+        delete_doc(db, doc_name, delete_if_human_response=delete_if_human_response)
+    insert_new_doc(db, doc_name, doc_dict)
                     
 
 def insert_documents_from_json(db, json_file: Path) -> None:

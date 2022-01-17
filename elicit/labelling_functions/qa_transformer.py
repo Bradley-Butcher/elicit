@@ -1,7 +1,7 @@
 """Script to extract answers from a document using a Q&A Transformer model."""
 from transformers import pipeline, AutoModelForQuestionAnswering, AutoTokenizer
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 import itertools
 import warnings
 

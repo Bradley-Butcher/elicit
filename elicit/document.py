@@ -1,13 +1,10 @@
 """This script contains classes and functions for storing document information that has been extracted from the document."""
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Literal, Optional, Set, Tuple, Union
-import pandas as pd
-import spacy
+from typing import List, Tuple, Union
 from spacy.language import Language
-from tqdm import tqdm
 
-from elicit.utils.utils import context_from_doc_char
+from elicit.utils import context_from_doc_char
 
 @dataclass
 class Evidence:
@@ -156,9 +153,9 @@ class Document:
         """
         for key, value in kwargs.items():
             if isinstance(value, list) or isinstance(value, set):
-                kwargs[key] = [DocumentField(value=v, confidence=1, evidence="") for v in value]
+                kwargs[key] = [DocumentField(value=v, confidence=1, evidence=Evidence.no_match()) for v in value]
             else:
-                kwargs[key] = DocumentField(value=value, confidence=1, evidence="")
+                kwargs[key] = DocumentField(value=value, confidence=1, evidence=Evidence.no_match())
         return cls(filename=filename, method="manual", **kwargs)
 
     def to_dict(self):

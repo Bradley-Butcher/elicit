@@ -6,8 +6,8 @@ import warnings
 
 from elicit.document import Document, DocumentField, Evidence
 
-from elicit.components.qa_transformer import extract_answers
-from elicit.components.nli_transformer import compress
+from elicit.labelling_functions.qa_transformer import extract_answers
+from elicit.labelling_functions.nli_transformer import compress
 from elicit.utils.loading import load_schema
 from elicit.pipeline import labelling_function
 

@@ -1,8 +1,6 @@
 """Script to extract answers from a document using a Sentence Similarity Transformer model trained on Q&A pairs."""
 from pathlib import Path
 from sentence_transformers import SentenceTransformer, util
-from prefect import task
-import yaml
 
 from elicit.document import Document, DocumentField, Evidence
 from elicit.utils.loading import load_schema
