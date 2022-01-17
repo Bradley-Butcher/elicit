@@ -1,6 +1,4 @@
 """Script which tests the vectorizer module."""
-import pytest
-
 def test_output_get_vector():
     """
     Test the get_vector method of the Output class.

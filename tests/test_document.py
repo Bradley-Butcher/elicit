@@ -1,6 +1,4 @@
 """Script to test the case module."""
-import pytest
-
 from elicit.document import Evidence
 
 def test_no_evidence_match():
