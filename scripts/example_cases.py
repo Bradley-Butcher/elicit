@@ -1,16 +1,16 @@
 """Script which contains some manually labelled cases for testing purposes."""
 from pathlib import Path
 from typing import List
-from elicit.case import Case
+from elicit.document import Document
 
 
-def load_test_cases() -> List[Case]:
+def load_test_cases() -> List[Document]:
     """
     Load the test cases.
 
     :return: List of test cases.
     """
-    case_1 = Case.manual_entry(
+    case_1 = Document.manual_entry(
         filename="R_-v-_Christopher_James_McGee.pdf",
         offenses={"manslaughter"},
         defendants="christopher james mcgee",
@@ -32,7 +32,7 @@ def load_test_cases() -> List[Case]:
         relationship="none",
         outcome={"5 years inprisonment"}
     )
-    case_2 = Case.manual_entry(
+    case_2 = Document.manual_entry(
         filename="Sentencing_remarks_of_His_Honour_Judge_Eccles_Q.C.:_R_-v-_Ben_Blakeley.pdf",
         offenses={"murder", "obstruction of justice"},
         defendants="ben blakeley",
@@ -54,7 +54,7 @@ def load_test_cases() -> List[Case]:
         relationship="partner",
         outcome={"life inprisonment", "minimum 20 years"}
     )
-    case_3 = Case.manual_entry(
+    case_3 = Document.manual_entry(
         filename="R_-v-_Pavlo_Lapshyn.pdf",
         offenses={"murder", "causing an explosion with an intent to endanger life",
                   "engaging in conduct in preparation of terrorist acts"},
@@ -77,7 +77,7 @@ def load_test_cases() -> List[Case]:
         defendants={"pavlo lapshyn"},
         outcome={"40 years inprisonment", "life inprisonment"}
     )
-    case_4 = Case.manual_entry(
+    case_4 = Document.manual_entry(
         filename="R_-v-_David_Minto.pdf",
         offenses={"murder"},
         premeditated="premeditated",
@@ -99,7 +99,7 @@ def load_test_cases() -> List[Case]:
         defendants={"david minto"},
         outcome={"35 years", "life inprisonment"}
     )
-    case_5 = Case.manual_entry(
+    case_5 = Document.manual_entry(
         filename="R_-v-_Darrell_Desuze.pdf",
         offenses={"manslaughter", "violent disorder", "buglary"},
         premeditated="not premeditated",
@@ -121,7 +121,7 @@ def load_test_cases() -> List[Case]:
         defendants={"darrell desuze"},
         outcome={"8 years detention"}
     )
-    case_6 = Case.manual_entry(
+    case_6 = Document.manual_entry(
         filename="R_-v-_James_McCormick.pdf",
         offenses={"fraud"},
         premeditated="premeditated",
@@ -143,7 +143,7 @@ def load_test_cases() -> List[Case]:
         defendants={"james mccormick"},
         outcome={"10 years inprisonment"}
     )
-    case_7 = Case.manual_entry(
+    case_7 = Document.manual_entry(
         filename="R_-v-_Karl_Addo.pdf",
         offenses={"manslaughter"},
         premeditated="not premeditated",
@@ -165,7 +165,7 @@ def load_test_cases() -> List[Case]:
         defendants={"karl addo"},
         outcome={"six and a half years"}
     )
-    case_8 = Case.manual_entry(
+    case_8 = Document.manual_entry(
         filename="R_-v-_Kuntal_Patel.pdf",
         offenses={"acquiring a biological toxin"},
         premeditated="premeditated",
@@ -187,7 +187,7 @@ def load_test_cases() -> List[Case]:
         defendants={"kuntal patel"},
         outcome={"3 years"}
     )
-    case_9 = Case.manual_entry(
+    case_9 = Document.manual_entry(
         filename="R_-v-_Lowe.pdf",
         offenses={"murder"},
         premeditated="not premeditated",

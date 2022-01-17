@@ -1,7 +1,7 @@
 """Script which runs the test cases."""
 from pathlib import Path
 
-from elicit.utils.example_cases import load_test_cases
+from scripts.example_cases import load_test_cases
 from elicit.example_pipelines import demo_pipeline
 
 

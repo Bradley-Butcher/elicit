@@ -7,7 +7,7 @@ import functools
 from typing import Callable, List, Optional, Set
 
 from pathlib import Path
-from elicit.case import Case
+from elicit.document import Document
 
 
 from elicit.vectorizer import Vectorizer
@@ -30,7 +30,7 @@ def labelling_function(
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         assert len(args) == 0, "All arguments should be passed as keyword arguments."
-        case = Case(filename=kwargs.pop("pdf").stem, method=labelling_method)
+        case = Document(filename=kwargs.pop("pdf").stem, method=labelling_method)
         case = func(case=case, **kwargs)
         return case
     if required_schemas:

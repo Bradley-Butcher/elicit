@@ -1,6 +1,6 @@
 """Script which merges multiple cases and stores them in a database."""
 from typing import Dict, List, Set, Tuple
-from elicit.case import Case, CaseField, Evidence
+from elicit.document import Document, DocumentField, Evidence
 from dataclasses import asdict, dataclass
 from database.db_utils import connect_db, insert_doc_from_dict
 
@@ -41,7 +41,7 @@ class Vectorizer:
         print("Connected to results database.")
     
     @staticmethod
-    def match_cases(cases: List[Case]) -> Dict[str, List[Case]]:
+    def match_cases(cases: List[Document]) -> Dict[str, List[Document]]:
         """
         Matches cases from different flows.
 
@@ -55,7 +55,7 @@ class Vectorizer:
                 matches[c.filename].append(c)
         return matches
     
-    def apply_weighting(self, cases: List[Case]) -> List[Case]:
+    def apply_weighting(self, cases: List[Document]) -> List[Document]:
         """
         Apply the weighting to the case confidence.
 
@@ -65,13 +65,13 @@ class Vectorizer:
         for case in cases:
             assert case.method in self.flow_weighting, f"Unrecognized method: {case.method} in weighting dict with keys: {self.flow_weighting.keys()}"
             weight = self.flow_weighting[case.method]
-            new_case = Case(case.filename, case.method)
+            new_case = Document(case.filename, case.method)
             weighted_dict = {k: v * weight for k, v in case.to_dict().items()}
             new_case.add_dict(weighted_dict)
             new_cases.append(new_case)
         return new_cases
     
-    def identify_methods(self, cases: List[Case]) -> List[str]:
+    def identify_methods(self, cases: List[Document]) -> List[str]:
         """
         Identifies the methods used in the cases.
 
@@ -79,7 +79,7 @@ class Vectorizer:
         """
         self.methods = list({case.method for case in cases})
 
-    def combine_and_store(self, cases: List[Case]) -> None:
+    def combine_and_store(self, cases: List[Document]) -> None:
         """
         Combines cases from multiple flows and stores them in the database.
         
@@ -95,7 +95,7 @@ class Vectorizer:
         self.db.commit()
 
     @staticmethod
-    def get_key_list(cases: List[Case]) -> Set[str]:
+    def get_key_list(cases: List[Document]) -> Set[str]:
         """
         Returns a list of keys for the given cases.
         
@@ -127,7 +127,7 @@ class Vectorizer:
             if not hasattr(case, key):
                 continue
             variable_value = getattr(case, key)
-            if isinstance(variable_value, CaseField):
+            if isinstance(variable_value, DocumentField):
                 if variable_value.value == value:
                     vectors[idx] = variable_value.confidence
                     evidence[idx] = variable_value.evidence
@@ -146,7 +146,7 @@ class Vectorizer:
         return vectors, evidence, methods
 
     @staticmethod
-    def get_value_list(cases: List[Case], key: str) -> List[str]:
+    def get_value_list(cases: List[Document], key: str) -> List[str]:
         """
         Returns a list of values for the case, for a particular field.
         E.g. the list of values for the "victim_age" field, [42, 41, 22].
@@ -159,14 +159,14 @@ class Vectorizer:
             if not hasattr(case, key):
                 continue
             variable_value = getattr(case, key)
-            if isinstance(variable_value, CaseField):
+            if isinstance(variable_value, DocumentField):
                 values.append(variable_value.value)
             else:
                 for cf in variable_value:
                     values.append(cf.value)
         return sorted(values)
 
-    def vectorize(self, case_group: List[Case]) -> Dict[str, Dict[str, Output]]:
+    def vectorize(self, case_group: List[Document]) -> Dict[str, Dict[str, Output]]:
         """
         Vectorizes the cases. Generates a dictionary which can be inserted into the database.
 

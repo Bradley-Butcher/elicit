@@ -141,7 +141,7 @@ pipeline.register_function(keyword_match, {"keyword_schema", "keyword_schema2.ym
 ```
 leaving the required_schemas empty.
 
-In addition, the labelling function must return a correctly formed case object. Cases take casefields objects which contain the extracted value, confidence, and evidence. The evidence object has various classmethods to help create the evidence object, such as: `Evidence.from_character_startend`. Cases are pre-initialized by the decorator.
+The labelling function must return a correctly formed case object. Cases take casefields objects which contain the extracted value, confidence, and evidence. The evidence object has various classmethods to help create the evidence object, such as: `Evidence.from_character_startend`. Cases are pre-initialized by the decorator.
 
 Below is an example of adding a field to a case, check tests/test_case.py and the existing labelling functions for more examples:
 ```

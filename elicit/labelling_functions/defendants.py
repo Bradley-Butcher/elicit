@@ -6,7 +6,7 @@ import re
 
 from prefect import task
 
-from elicit.case import Case, CaseField, Evidence
+from elicit.document import Document, DocumentField, Evidence
 
 
 def _flatten(l: List[List[str]]) -> List[str]:
@@ -67,7 +67,7 @@ def extract_defendants_regex(doc: str) -> List[str]:
     return [n.strip().lower() for n in names]
 
 @task
-def get_defendants(filename: Path, doc: str, case: Case) -> Case:
+def get_defendants(filename: Path, doc: str, case: Document) -> Document:
     """
     Gets the defendant names from the document or filename.
     Adds the extracted names to the passed case object.
@@ -79,5 +79,5 @@ def get_defendants(filename: Path, doc: str, case: Case) -> Case:
     result = extract_defendants_filename(filename.stem)
     if not result:
         result = extract_defendants_regex(doc)
-    case.defendants =  CaseField(value=result[0], confidence=1.0, evidence=Evidence(exact_context=str(filename.stem), local_context=str(filename.name), wider_context=str(filename.name)))
+    case.defendants =  DocumentField(value=result[0], confidence=1.0, evidence=Evidence(exact_context=str(filename.stem), local_context=str(filename.name), wider_context=str(filename.name)))
     return case

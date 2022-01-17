@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Union
 import warnings
 
-from elicit.case import Case, CaseField, Evidence
+from elicit.document import Document, DocumentField, Evidence
 
 from elicit.components.qa_transformer import extract_answers
 from elicit.components.nli_transformer import compress
@@ -33,7 +33,7 @@ def similarity(answer: str, levels: List[str]):
     sims = [float(util.pytorch_cos_sim(embeddings[0], embeddings[i])) for i in range(1, len(embeddings))]
     return [(levels[i], s) for i, s in enumerate(sims)]
 
-def match_similarity(answers: List[Tuple[str, float]], doc: str, levels: List[str], threshold: float) -> Union[CaseField, List[CaseField]]:
+def match_similarity(answers: List[Tuple[str, float]], doc: str, levels: List[str], threshold: float) -> Union[DocumentField, List[DocumentField]]:
     """
     Find closest level to an answer, must pass threshold.
     
@@ -45,22 +45,22 @@ def match_similarity(answers: List[Tuple[str, float]], doc: str, levels: List[st
     :return: List of CaseFields.
     """
     if not answers:
-        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     candidates = []
     for answer, score, start, end in answers:
         output = similarity(answer, [*levels, ""])
         candidates += [(o, s * score, start, end) for o, s in output if s > threshold]
     if not candidates:
-        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     compressed_candidates, context = compress(candidates)
     max_candidate = max(compressed_candidates, key=compressed_candidates.get)
-    output = CaseField(
+    output = DocumentField(
         value=max_candidate,
         confidence=compressed_candidates[max_candidate],
         evidence=Evidence.from_character_startend(doc, context[max_candidate]["start"], context[max_candidate]["end"])
     )
     if output.value == "":
-        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     return output
 
 
@@ -90,12 +90,12 @@ def process_answers(answers: Dict[str, Tuple[str, float]], doc:str, categories_s
 @labelling_function(labelling_method="Similarity Transformer", required_schemas=["question_schema", "categories_schema"])
 def sim_extraction(
     doc: str, 
-    case: Case,
+    case: Document,
     question_schema: Path, 
     categories_schema: Path, 
     match_threshold: float = 0.3, 
     qa_threshold: float = 0.5, 
-) -> Case:
+) -> Document:
     """
     Extract variables from doc using a Sentence Similarity transformer model and a Q&A transformer model.
 

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 import itertools
 import warnings
 
-from elicit.case import Case
+from elicit.document import Document
 from elicit.utils.loading import load_schema
 
 warnings.filterwarnings("ignore")
@@ -43,7 +43,7 @@ def _filter_candidates(answers: List[dict], threshold: float = 0.5) -> str:
     return [(a["answer"], a["score"], a["start"], a["end"]) for a in answers if a["score"] > threshold]
 
 
-def extract_answers(doc: str, case: Case, question_schema: Path, topk: int = 5, threshold: float = 0.3) -> Dict[str, Tuple[str, float, int, int]]:
+def extract_answers(doc: str, case: Document, question_schema: Path, topk: int = 5, threshold: float = 0.3) -> Dict[str, Tuple[str, float, int, int]]:
     """
     Extract answers from a document using a Q&A Transformer model.
 

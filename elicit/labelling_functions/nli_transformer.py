@@ -7,7 +7,7 @@ import re
 import itertools
 import warnings
 
-from elicit.case import Case, CaseField, Evidence
+from elicit.document import Document, DocumentField, Evidence
 
 from elicit.components.qa_transformer import extract_answers
 from elicit.utils.loading import load_schema
@@ -20,7 +20,7 @@ classifier = pipeline("zero-shot-classification",
                       model="facebook/bart-large-mnli", device=0)
 
 
-def extract_value(answers: List[Tuple[str, float, int, int]], doc: str, threshold: float) -> Union[CaseField, List[CaseField]]:
+def extract_value(answers: List[Tuple[str, float, int, int]], doc: str, threshold: float) -> Union[DocumentField, List[DocumentField]]:
     """
     Extract numerical value from the output Q&A Transformer, only used if variable category is assigned as "continuous".
 
@@ -33,9 +33,9 @@ def extract_value(answers: List[Tuple[str, float, int, int]], doc: str, threshol
     values = [(re.findall(r'\d+', answer)[0], score, start, end)
               for answer, score, start, end in answers if score > threshold and re.findall(r'\d+', answer)]
     if not values:
-        return CaseField(value="unknown", confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value="unknown", confidence=0, evidence=Evidence.no_match())
     values, context = compress(values)
-    output = [CaseField(value=k, confidence=v, evidence=Evidence.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in values.items()]
+    output = [DocumentField(value=k, confidence=v, evidence=Evidence.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in values.items()]
     if len(output) == 1:
         return output[0]
     return output
@@ -75,7 +75,7 @@ def match_classify(answers: List[Tuple[str, float]], doc: str, levels: List[str]
     :return: Tuple of the matched level and the confidence of the match.
     """
     if not answers:
-        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     candidates = []
     for answer, score, start, end in answers:
         if answer in levels:
@@ -85,20 +85,20 @@ def match_classify(answers: List[Tuple[str, float]], doc: str, levels: List[str]
             candidates += [(output["labels"][i], output["scores"][i] * score, start, end)
                         for i in range(len(output["labels"])) if output["scores"][i] > threshold]
     if not candidates:
-        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     compressed_candidates, context = compress(candidates)
     max_candidate = max(compressed_candidates, key=compressed_candidates.get)
-    output = CaseField(
+    output = DocumentField(
         value=max_candidate,
         confidence=compressed_candidates[max_candidate],
         evidence=Evidence.from_character_startend(doc, context[max_candidate]["start"], context[max_candidate]["end"])
     )
     if output.value == "":
-        return CaseField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
     return output
 
 
-def extract_top(answers: List[Tuple[str, float, int, int]], doc: str) -> List[CaseField]:
+def extract_top(answers: List[Tuple[str, float, int, int]], doc: str) -> List[DocumentField]:
     """
     Extract top answer from Q&A Transformer. This is used if variable category is assigned as "raw".
 
@@ -108,9 +108,9 @@ def extract_top(answers: List[Tuple[str, float, int, int]], doc: str) -> List[Ca
     :return: List of CaseField objects with the extracted values.
     """
     if not answers:
-        return CaseField(value="unknown", confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value="unknown", confidence=0, evidence=Evidence.no_match())
     answers, context = compress(answers)
-    return [CaseField(value=k, confidence=v, evidence=Evidence.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in answers.items()]
+    return [DocumentField(value=k, confidence=v, evidence=Evidence.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in answers.items()]
 
 
 def process_answers(answers: Dict[str, Tuple[str, float, int, int]], doc: str, categories_schema: Path, threshold: float = 0.7) -> Dict[str, List[str]]:
@@ -140,12 +140,12 @@ def process_answers(answers: Dict[str, Tuple[str, float, int, int]], doc: str, c
 @labelling_function(labelling_method="NLI Transformer", required_schemas=["question_schema", "categories_schema"])
 def nli_extraction(
     doc: str, 
-    case: Case,
+    case: Document,
     question_schema: Path, 
     categories_schema: Path, 
     match_threshold: float = 0.3, 
     qa_threshold: float = 0.5, 
-) -> Case:
+) -> Document:
     """
     Task for using NLI to extract variables from a document.
 
