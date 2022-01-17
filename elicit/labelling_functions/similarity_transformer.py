@@ -1,9 +1,7 @@
 """Script which uses a Sentence Similarity transformer model to assign extracted Q&A pairs to provided categories."""
-from prefect import task
-from transformers import pipeline
 from sentence_transformers import SentenceTransformer, util
 from pathlib import Path
-from typing import DefaultDict, Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 import warnings
 
 from elicit.case import Case, CaseField, Evidence
@@ -11,6 +9,8 @@ from elicit.case import Case, CaseField, Evidence
 from elicit.components.qa_transformer import extract_answers
 from elicit.components.nli_transformer import compress
 from elicit.utils.loading import load_schema
+from elicit.pipeline import labelling_function
+
 
 
 warnings.filterwarnings("ignore")
@@ -87,7 +87,7 @@ def process_answers(answers: Dict[str, Tuple[str, float]], doc:str, categories_s
                 answers[key], doc=doc, levels=variables[key], threshold=threshold)
     return extracted_variables
 
-@task
+@labelling_function(labelling_method="Similarity Transformer", required_schemas=["question_schema", "categories_schema"])
 def sim_extraction(
     doc: str, 
     case: Case,

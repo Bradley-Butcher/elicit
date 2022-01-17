@@ -79,7 +79,7 @@ class Vectorizer:
         """
         self.methods = list({case.method for case in cases})
 
-    def combine_and_store(self, cases: List[Case]) -> Dict[str, Case]:
+    def combine_and_store(self, cases: List[Case]) -> None:
         """
         Combines cases from multiple flows and stores them in the database.
         

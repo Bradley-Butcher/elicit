@@ -1,5 +1,4 @@
 """Script which uses a Natural Language Inference transfomer model assign extracted Q&A pairs to provided categories."""
-from prefect import task
 import yaml
 from transformers import pipeline
 from pathlib import Path
@@ -12,6 +11,8 @@ from elicit.case import Case, CaseField, Evidence
 
 from elicit.components.qa_transformer import extract_answers
 from elicit.utils.loading import load_schema
+from elicit.pipeline import labelling_function
+
 
 warnings.filterwarnings("ignore")
 
@@ -136,7 +137,7 @@ def process_answers(answers: Dict[str, Tuple[str, float, int, int]], doc: str, c
             extracted_variables[key] = match_classify(answers=answers[key], doc=doc, levels=variables[key], threshold=threshold)
     return extracted_variables
 
-@task
+@labelling_function(labelling_method="NLI Transformer", required_schemas=["question_schema", "categories_schema"])
 def nli_extraction(
     doc: str, 
     case: Case,

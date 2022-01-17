@@ -100,4 +100,50 @@ offender_confession:
 
 These are placed into the yaml files "categories.yml" and "questions.yml" respectively.
 
-A basic schema is already defined in the /schemas directory. Modifying these files is currently the easiest way to add new questions and categories.
+Basic schemas are already defined in the /schemas directory. Check the demo schemas for simple examples.
+
+### Defining Pipelines
+
+You can find example pipelines in elicit/example_pipelines.py.
+
+There are two steps in creating a pipeline:
+- Registering the appropriate schema (if required).
+- Registering the labelling functions.
+
+e.g.:
+
+```
+pipeline.register_schema(schema=keyword_schema, schema_name="keyword_schema")
+pipeline.register_function(keyword_match)
+pipeline.run(pdfs)
+```
+
+As the keyword match requires a keyword schema, the schema must be registered.
+
+### Creating Labelling functions
+
+Check the elicit/labelling_functions directory for existing labelling functions. 
+Any labelling function must have the `@labelling_function` decorator, which can be imported from the pipline.py file.
+
+E.g.
+```
+@labelling_function(labelling_method="Keyword Match", required_schemas=["keyword_schema"])
+def keyword_match(pdf_text, keyword_schema):
+    ...
+    return case
+```
+
+If you wish to use the same function with multiple schemas, this can be done like so:
+
+```
+pipeline.register_function(keyword_match, {"keyword_schema", "keyword_schema1.yml"})
+pipeline.register_function(keyword_match, {"keyword_schema", "keyword_schema2.yml"})
+```
+leaving the required_schemas empty.
+
+In addition, the labelling function must return a correctly formed case object. Cases take casefields objects which contain the extracted value, confidence, and evidence. The evidence object has various classmethods to help create the evidence object, such as: `Evidence.from_character_startend`. Cases are pre-initialized by the decorator.
+
+Below is an example of adding a field to a case, check tests/test_case.py and the existing labelling functions for more examples:
+```
+case.add_field("test", CaseField(value="test_value", confidence=0.5, evidence=Evidence.no_match()))
+```

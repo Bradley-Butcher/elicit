@@ -6,10 +6,10 @@ from spacy.language import Language
 import yaml
 import spacy
 from spacy.matcher import PhraseMatcher
-from prefect import task
 
 from elicit.case import Case, CaseField, Evidence
 from elicit.utils.loading import load_schema
+from elicit.pipeline import labelling_function
 
 
 def exact_match_single(doc: str, keywords: Dict[str, List[str]]) -> List[CaseField]:
@@ -41,8 +41,8 @@ def exact_match_single(doc: str, keywords: Dict[str, List[str]]) -> List[CaseFie
         casefields.append(CaseField(value=match, confidence=1.0, evidence=Evidence.from_spacy_multiple(doc, exact_matches[match])))
     return casefields
 
-@task
-def exact_match(doc: str, case: Case, keyword_path: Path, categories_path: Path) -> Case:
+@labelling_function(labelling_method="Keyword Match", required_schemas=["keyword_schema", "categories_schema"])
+def exact_match(doc: str, case: Case, keyword_schema: Path, categories_schema: Path) -> Case:
     """
     Match the keywords in the document with the keywords in the keywords file.
 
@@ -53,8 +53,8 @@ def exact_match(doc: str, case: Case, keyword_path: Path, categories_path: Path)
 
     :return: The case with the keywords added.
     """
-    field_keywords = load_schema(keyword_path)
-    categories = load_schema(categories_path)
+    field_keywords = load_schema(keyword_schema)
+    categories = load_schema(categories_schema)
     for field in field_keywords.keys():
         match = exact_match_single(doc, field_keywords[field])
         if match:

@@ -1,4 +1,5 @@
 """Script containing various utility functions."""
+import functools
 from pathlib import Path
 from typing import List, Set
 from collections import Counter
@@ -6,7 +7,6 @@ import pandas as pd
 from spacy.matcher import Matcher
 
 import spacy
-
 
 def context_from_doc_char(doc: str, start_idx: int, end_idx: int, padding: int = 100) -> str:
     """

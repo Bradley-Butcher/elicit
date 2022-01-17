@@ -6,6 +6,7 @@ import yaml
 
 from elicit.case import Case, CaseField, Evidence
 from elicit.utils.loading import load_schema
+from elicit.pipeline import labelling_function
 
 model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
 
@@ -83,7 +84,7 @@ def get_sentence_start_end(doc:str, sentence: str) -> tuple[int, int]:
     end = start + len(sentence)
     return start, end
 
-@task
+@labelling_function(labelling_method="Semantic Search", required_schemas=["question_schema", "categories_schema"])
 def search(
     doc: str, 
     case: Case,
@@ -107,7 +108,7 @@ def search(
         if categories[k] == "raw" or categories[k] == "continuous":
             continue
         doc_sims = doc_similarities(questions[k], doc)
-        matched_level, matched_sentence, matched_score = match_levels(doc_sims, doc, categories[k], threshold)
+        matched_level, matched_sentence, matched_score = match_levels(doc_sims, categories[k], threshold)
         if matched_level:
             s_start, s_end = get_sentence_start_end(doc, matched_sentence)
             cf = CaseField(value=matched_level, confidence=matched_score, evidence=Evidence.from_character_startend(doc, s_start, s_end))

@@ -3,7 +3,6 @@ from pdfminer.pdfinterp import PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator, PDFResourceManager
 from pdfminer.layout import LAParams, LTTextBoxHorizontal
 from pdfminer.pdfpage import PDFPage
-from prefect import task
 from pathlib import Path
 from typing import List, Optional, Union
 import logging
@@ -42,7 +41,6 @@ def load_pdf(path: Path, pages: Optional[List[int]] = None) -> str:
                 doc += text
     return doc
 
-@task
 def pdf_to_plaintext(pdf_location: Path, pages: Optional[List[int]] = None, newlines: bool = False, raw: bool = False) -> str:
     """
     Load a PDF file into a string. Contains some minor post-processing.
