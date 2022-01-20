@@ -53,7 +53,7 @@ The library is currently in very early development. Syntax, features, and functi
 
 ### User Interface
 
-To run the user interface, run the bash script `./run_ui.sh`. You may need to give the script execute permission `chmod +X run_ui.sh`. Ensure you are using the appropriate python environment.
+To run the user interface, run the bash script `./run_ui.sh`. You may need to give the script execute permission `chmod +x run_ui.sh`. Ensure you are using the appropriate python environment.
 
 Alternatively, run the commands:
 ```
