@@ -156,7 +156,9 @@ export default {
         return b.confidence - a.confidence;
       })[0];
       if (best_ev && best_ev.exact_context) {
-        return '"' + best_ev.exact_context + '"';
+        // get exact context split by commas, newlines or periods. Return first.
+        const context = best_ev.exact_context.split(/[,\n.]/);
+        return '"' + context[0] + '"';
       } else {
         return "No Evidence";
       }
@@ -226,7 +228,7 @@ export default {
             {{ get_confidence(varz, extracted_data, varz.variable_id) }}
           </div>
           <div class="vr bg-dark"></div>
-          <div class="p-2 bg-warning text-white">
+          <div class="p-2 bg-warning text-white" style="max-width:50%;">
             Evidence: {{ get_best_evidence(varz) }}
           </div>
         </CaseButton>
@@ -255,8 +257,8 @@ export default {
                       <span v-html="add_mark(ev)"></span>
                     </th>
                     <td>{{ ev.method }}</td>
-                    <td>{{ ev.confidence }}</td>
-                    <td><button @click="setEvidence(ev)">View</button></td>
+                    <td>{{ Math.round(ev.confidence * 1000) / 10 }}%</td>
+                    <td><button class="btn btn-secondary btn-sm mx-auto" @click="setEvidence(ev)">View</button></td>
                   </tr>
                 </tbody>
               </table>

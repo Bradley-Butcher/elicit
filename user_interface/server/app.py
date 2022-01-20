@@ -57,6 +57,25 @@ def submit_answer(variable_id: int, answer: str):
     db.commit()
     return "OK"
 
+@app.route('/api/get_data/', methods=['GET'])
+@cross_origin(origin='*',headers=['Content-Type','Authorization', 'Access-Control-Allow-Origin'])
+def get_data():
+    vars = query_db(db, "SELECT * FROM variable")
+    vars_df = pd.DataFrame(vars)
+    def handle_var(doc_group: pd.DataFrame):
+        def handle_var_val(val_group: pd.DataFrame):
+            select = val_group[val_group["human_response"] == "correct"]
+            if len(select) == 0:
+                return "N/A"
+            else:
+                return select["variable_value"].values[0]
+        df = doc_group.groupby("variable_name").apply(lambda x: handle_var_val(x)).to_frame("variable_value").reset_index().T
+        df.columns = df.iloc[0]
+        df = df.iloc[1:]
+        return df
+    df = vars_df.groupby("document_id").apply(lambda x: handle_var(x))
+    return df.to_csv(index=False)
+
 def clean_title(title: str) -> str:
     title = title.replace("_", " ").title()
     title = title.replace("-", "").replace(" V ", " v ")

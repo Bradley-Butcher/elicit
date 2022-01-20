@@ -114,6 +114,8 @@ def delete_doc(db, doc_name: str, delete_if_human_response: bool = False) -> Non
     if len(variables) == deleted_vars:
         query = f"DELETE FROM document WHERE document_id = '{doc_id}'"
         db.execute(query)
+    db.commit()
+    
         
 def get_doc_id(db, doc_name: str) -> int:
     """

@@ -12,10 +12,10 @@
         @click="emit_click"
       >
         <slot> </slot>
-        <div class="options ms-auto">
-          <i @click.stop="send_signal('correct')" v-bind:class="{selected_option: status == `correct`}" class="fas fa-check fa-lg"></i>
-          <i @click.stop="send_signal('unknown')" v-bind:class="{selected_option: status == `unknown`}" class="fas fa-question fa-lg"></i>
-          <i @click.stop="send_signal('incorrect')" v-bind:class="{selected_option: status == `incorrect`}" class="fas fa-times fa-lg"></i>
+        <div class="options ms-auto" style="width:120px;">
+          <i @click.stop="send_signal('correct')" v-bind:class="{selected_option: status == `correct`}" class="fas fa-check fa-lg ms-auto"></i>
+          <i @click.stop="send_signal('unknown')" v-bind:class="{selected_option: status == `unknown`}" class="fas fa-question ms-auto"></i>
+          <i @click.stop="send_signal('incorrect')" v-bind:class="{selected_option: status == `incorrect`}" class="fas fa-times ms-auto"></i>
         </div>
       </button>
     </h2>

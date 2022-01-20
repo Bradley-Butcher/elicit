@@ -56,7 +56,7 @@ race_aggrevating:
     - muslim
     - minority
     - white
-  race not an aggrevating factor:
+  none:
     - race not an aggrevating factor
     - not a hate crime
 victim_sex:

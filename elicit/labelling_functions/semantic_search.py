@@ -85,7 +85,7 @@ def get_sentence_start_end(doc:str, sentence: str) -> tuple[int, int]:
 @labelling_function(labelling_method="Semantic Search", required_schemas=["question_schema", "categories_schema"])
 def search(
     doc: str, 
-    case: Document,
+    document: Document,
     question_schema: Path, 
     categories_schema: Path, 
     threshold=0.1) -> Document:
@@ -112,8 +112,8 @@ def search(
             cf = DocumentField(value=matched_level, confidence=matched_score, evidence=Evidence.from_character_startend(doc, s_start, s_end))
         else:
             cf = DocumentField(value=categories[k][-1], confidence=0, evidence=Evidence.no_match())
-        case.add_field(k, cf)
-    return case
+        document.add_field(k, cf)
+    return document
             
 
 

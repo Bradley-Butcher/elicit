@@ -1,5 +1,6 @@
 <template>
-  <button class="btn btn-primary btn-sm" type="button" @click="clicked">
+<div>
+  <a type="button" class="btn btn-outline-dark btn-sm" @click="clicked">
     <span>{{ button_text }}</span>
     <span
       class="spinner-border spinner-border-sm"
@@ -8,7 +9,8 @@
       v-if="loading"
 
     ></span>
-  </button>
+  </a>
+  </div>
 </template>
 
 <script>

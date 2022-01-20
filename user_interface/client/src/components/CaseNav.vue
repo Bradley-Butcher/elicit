@@ -1,7 +1,7 @@
 <template>
   <div>
     <div>
-    <h1 style="text-align: center" class="d-block float-left display-3">{{ case_title }}</h1>
+    <!-- <h1 style="text-align: center" class="d-block float-left display-3">{{ case_title }}</h1> -->
     </div>
     <ul id="field_nav" class="nav nav-tabs">
       <li class="nav-item" v-for="val in variables" :key="val">

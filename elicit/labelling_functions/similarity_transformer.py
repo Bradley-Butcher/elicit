@@ -29,7 +29,7 @@ def similarity(answer: str, levels: List[str]):
     """
     def _add_prefix(level: List[str]) -> str:
         return [f"this is a {l}" for l in level]
-    embeddings = model.encode(_add_prefix([answer, *levels]))
+    embeddings = model.encode(_add_prefix([answer, *levels]), device=0)
     sims = [float(util.pytorch_cos_sim(embeddings[0], embeddings[i])) for i in range(1, len(embeddings))]
     return [(levels[i], s) for i, s in enumerate(sims)]
 
@@ -90,7 +90,7 @@ def process_answers(answers: Dict[str, Tuple[str, float]], doc:str, categories_s
 @labelling_function(labelling_method="Similarity Transformer", required_schemas=["question_schema", "categories_schema"])
 def sim_extraction(
     doc: str, 
-    case: Document,
+    document: Document,
     question_schema: Path, 
     categories_schema: Path, 
     match_threshold: float = 0.3, 
@@ -110,7 +110,7 @@ def sim_extraction(
 
     :return: Updated case.
     """
-    answers = extract_answers(case=case, doc=doc, question_schema=question_schema, threshold=qa_threshold)
+    answers = extract_answers(case=document, doc=doc, question_schema=question_schema, threshold=qa_threshold)
     answer_dict = process_answers(answers=answers, doc=doc, categories_schema=categories_schema, threshold=match_threshold)
-    case.add_dict(answer_dict)
-    return case
+    document.add_dict(answer_dict)
+    return document

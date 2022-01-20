@@ -11,6 +11,7 @@ vulnerable_victim:
   - victim vulnerable?
   - was the victim young?
   - was the victim old?
+  - was the victim drunk?
 race_aggrevating:
   - Was there a racist motivation for the crime?
   - Was the crime aggrevated by racism?
@@ -18,6 +19,7 @@ race_aggrevating:
   - was the victim a minority?
   - was the victim black?
   - was the victim a muslim?
+  - hate crime?
 victim_sex:
   - Was the victim a male?
   - Was the victim a female?
@@ -28,3 +30,4 @@ victim_age:
   - What age was the victim?
   - How old was the victim?
   - How many years old was the victim?
+  - years old?

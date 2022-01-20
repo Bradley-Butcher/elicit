@@ -41,6 +41,25 @@ def load_pdf(path: Path, pages: Optional[List[int]] = None) -> str:
                 doc += text
     return doc
 
+def load_document(document_location: Path, pdf_kwargs: dict = {}):
+    """
+    Load a document from a PDF or txt file.
+
+    :param document_location: Path to the document.
+    :param pdf_kwargs: Keyword arguments to pass to pdf_to_plaintext.
+
+    :return: Document as a string.
+    """
+    if document_location.suffix == ".pdf":
+        return pdf_to_plaintext(document_location, **pdf_kwargs)
+    elif document_location.suffix == ".txt":
+        with open(document_location, "r") as f:
+            text = f.read()
+            text.replace("\n", " ")
+            return text  
+    else:
+        raise ValueError(f"Unknown file type {document_location.suffix}")
+
 def pdf_to_plaintext(pdf_location: Path, pages: Optional[List[int]] = None, newlines: bool = False, raw: bool = False) -> str:
     """
     Load a PDF file into a string. Contains some minor post-processing.
@@ -57,7 +76,7 @@ def pdf_to_plaintext(pdf_location: Path, pages: Optional[List[int]] = None, newl
         raw_text = raw_text.replace("\xa0", " ")
         raw_text = raw_text.replace("\x0c", "")
         if not newlines:
-            raw_text = raw_text.replace("\n", "")
+            raw_text = raw_text.replace("\n", " ")
     return raw_text
 
 def load_schema(schema_path: Path) -> dict[str, Union[str, List[str]]]:

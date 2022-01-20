@@ -34,6 +34,18 @@ class Evidence:
         return cls(exact_context, local_context, wider_context)
     
     @classmethod
+    def from_string(cls, string: str, exact_chars: int = 100, local_padding: int = 100, wider_padding: int = 500) -> "Evidence":
+        """
+        Returns an evidence object from a string.
+        """
+        mid = len(string) // 2
+        exact_context = string[max(0, mid - (exact_chars // 2)):min(len(string), mid + (exact_chars // 2))]
+        local_context = string[max(0, mid - (exact_chars + local_padding // 2)):min(len(string), mid + (exact_chars + local_padding // 2))]
+        wider_context = string[max(0, mid - (exact_chars + wider_padding // 2)):min(len(string), mid + (exact_chars + wider_padding // 2))]
+        return cls(exact_context, local_context, wider_context)
+
+    
+    @classmethod
     def from_spacy(cls, doc: Language, start: int, end:int, local_padding: int = 0, wider_padding: int = 10) -> "Evidence":
         """
         Returns an evidence object from a character start and end index.
@@ -127,6 +139,15 @@ class Document:
                 if isinstance(value, DocumentField):
                     value = [value]
                 setattr(self, key, current + value)
+    
+    def add_fields(self, field_name: str, fields: List[DocumentField]):
+        """
+        Adds a list of DocumentField to the case.
+
+        :param fields: The list of DocumentField to add.
+        """
+        for field in fields:
+            self.add_field(field_name, field)
     
     def add_field(self, field: str, document_field: DocumentField):
         """

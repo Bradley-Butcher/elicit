@@ -1,0 +1,22 @@
+offenses:
+  type: direct
+  prompts:
+    - The specific crime commited was [MASK].
+    - The type of crime commited was [MASK].
+race_aggrevating:
+  type: boolean
+  prompts:
+    - The offender [MASK] racist.
+victim_sex:
+  type: direct
+  prompts:
+    - The gender of the victim was [MASK].
+    - The sex of the victim was [MASK].
+victim_age:
+  type: direct
+  prompts:
+    - The victim was [MASK] years old.
+vulnerable_victim:
+  type: boolean
+  prompts:
+    - The victim [MASK] vulnerable.

@@ -40,7 +40,7 @@ def exact_match_single(doc: str, keywords: Dict[str, List[str]]) -> List[Documen
     return casefields
 
 @labelling_function(labelling_method="Keyword Match", required_schemas=["keyword_schema", "categories_schema"])
-def exact_match(doc: str, case: Document, keyword_schema: Path, categories_schema: Path) -> Document:
+def exact_match(doc: str, document: Document, keyword_schema: Path, categories_schema: Path) -> Document:
     """
     Match the keywords in the document with the keywords in the keywords file.
 
@@ -56,11 +56,11 @@ def exact_match(doc: str, case: Document, keyword_schema: Path, categories_schem
     for field in field_keywords.keys():
         match = exact_match_single(doc, field_keywords[field])
         if match:
-            setattr(case, field, match)
+            setattr(document, field, match)
         else:
             default_category = categories[field][-1]
             cf = DocumentField(value=default_category, confidence=0, evidence=Evidence.no_match())
-            setattr(case, field, cf)
-    return case
+            setattr(document, field, cf)
+    return document
         
         

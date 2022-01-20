@@ -2,7 +2,8 @@
 import CaseNav from "./components/CaseNav.vue";
 import CaseMenu from "./components/CaseMenu.vue";
 import TrainButton from "./components/TrainButton.vue";
-import FilterButton from "./components/FilterButton.vue";
+import Filter from "./components/Filter.vue";
+import Export from "./components/Export.vue";
 
 export default {
   name: "App",
@@ -10,7 +11,8 @@ export default {
     CaseNav,
     CaseMenu,
     TrainButton,
-    FilterButton
+    Filter,
+    Export
   },
   data() {
     return {
@@ -33,19 +35,30 @@ export default {
   <div id="app">
     <div id="modals"></div>
     <CaseMenu @clicked="onCaseClicked" style="float: left" />
-    <nav id="main_nav" class="navbar navbar-light bg-light text-end">
-      <div class="container-fluid text-end">
+    <nav id="main_nav" class="navbar navbar-light bg-light">
+      <div class="container-fluid">
         <img
           src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Alan_Turing_Institute_logo.svg/1200px-Alan_Turing_Institute_logo.svg.png"
           alt=""
           width="70"
           height="30"
+          class="me-100"
         />
         <a class="navbar-brand text-black"><img src="./assets/elecit.png" style="height:35px;"></a>
-        <div class="d-block float-right">
-          <FilterButton class="float-right" style="margin-right:10px;"/>
+        <ul class="navbar-nav">
+
+        <div class="d-flex" style="width:200px">
+          <li class="nav-item me-2">
+          <Filter class="float-right"/>
+          </li>
+          <li class="nav-item me-2">
           <TrainButton @retrained="refresh_case+=1" class="float-left"/>
+          </li>
+          <li class="nav-item">
+          <Export class="float-right"/>
+          </li>
         </div>
+        </ul>
       </div>
     </nav>
     <CaseNav

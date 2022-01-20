@@ -17,7 +17,7 @@
       </li>
     <span class="fs-4" style="margin-top:16;">Documents</span>
     <hr style="margin-bottom:0;"/>
-      <li v-for="c in menu" :key="c.title">
+      <li v-for="c in sort_menu(menu)" :key="c.title">
           <a :class="{active: c.case_id == selected_case}" class="nav-link text-white" @click="onItemClick(c)"> {{ c.title }} </a>
           <div class="text-dark" style="height:2px;" :style="styles[case_id]"></div>
       </li>
@@ -45,6 +45,11 @@ export default {
     };
   },
   methods: {
+    sort_menu(menu) {
+      return menu.sort((a, b) => {
+        return a.title.localeCompare(b.title);
+      });
+    },
     getStyle(case_id) {
       const path = "http://127.0.0.1:5000/api/get_response_statuses/" + case_id;
       axios

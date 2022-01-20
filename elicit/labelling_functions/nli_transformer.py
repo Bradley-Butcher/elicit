@@ -137,7 +137,7 @@ def process_answers(answers: Dict[str, Tuple[str, float, int, int]], doc: str, c
 @labelling_function(labelling_method="NLI Transformer", required_schemas=["question_schema", "categories_schema"])
 def nli_extraction(
     doc: str, 
-    case: Document,
+    document: Document,
     question_schema: Path, 
     categories_schema: Path, 
     match_threshold: float = 0.3, 
@@ -156,7 +156,7 @@ def nli_extraction(
 
     :return: Case object with extracted variables.
     """
-    answers = extract_answers(doc=doc, case=case, question_schema=question_schema, threshold=qa_threshold)
+    answers = extract_answers(doc=doc, case=document, question_schema=question_schema, threshold=qa_threshold)
     answer_dict = process_answers(answers, doc=doc, categories_schema=categories_schema, threshold=match_threshold)
-    case.add_dict(answer_dict)
-    return case
+    document.add_dict(answer_dict)
+    return document
