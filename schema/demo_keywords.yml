@@ -44,6 +44,7 @@ vulnerable_victim:
     - weak
     - old
     - young
+    - disibility
   not vulnerable:
     - not vulnerable
 race_aggrevating:

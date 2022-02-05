@@ -8,30 +8,9 @@ from transformers import pipeline
 from elicit.document import Document, DocumentField, Evidence
 from elicit.pipeline import labelling_function
 from elicit.utils.loading import load_schema
+from elicit.utils.utils import split_doc
 
 unmasker = pipeline('fill-mask', model='bert-base-uncased')
-
-def split_doc(doc: str, max_length: int = 512, token: str = ".") -> list:
-    """Split a document into sentences. 
-    Splitting on the last period <Token> before the max length.
-
-    Args:
-        doc (str): Document to split.
-        max_length (int): Maximum length of each sentence.
-
-    Returns:
-        list: List of sentences.
-    """
-    sections = []
-    current_end = 0
-    while current_end <= len(doc):
-        if current_end + max_length >= len(doc):
-            sections.append(doc[current_end:])
-            break
-        section_end = doc[current_end:current_end + max_length].rfind(token) + current_end
-        sections += [doc[current_end:section_end]]
-        current_end = section_end
-    return sections
 
 def mask_variable(doc: str, masks: List[str], threshold: float = 0.3) -> List[DocumentField]:
     weighted_dict = {}

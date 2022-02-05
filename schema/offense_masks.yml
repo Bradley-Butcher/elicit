@@ -1,0 +1,6 @@
+offenses:
+  type: direct
+  prompts:
+    - The specific crime commited was [MASK].
+    - The type of crime commited was [MASK].
+    - The offender commited [MASK].

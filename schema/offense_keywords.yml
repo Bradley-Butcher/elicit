@@ -1,0 +1,86 @@
+offenses:
+  murder:
+    - murder
+    - killed
+  rape:
+    - rape
+    - sexual
+  manslaughter:
+    - manslaughter
+    - killed
+    - accidental death
+  computer misuse:
+    - computer misuse
+    - hacking
+    - virus
+  wounding with intent:
+    - wounding with intent
+    - intended harm
+  attempted murder:
+    - attempted murder
+  grievous bodily harm with intent:
+    - grievous bodily harm with intent
+    - GBH with intent
+  grievous bodily harm:
+    - grievous bodily harm
+    - GBH
+  sexual crimes:
+    - sexual crime
+  misconduct in public office:
+    - misconduct in public office
+    - public office
+  robbery:
+    - robbery
+  administering a poison or noxious substance:
+    - administering a poison
+    - poison
+    - gas
+  making indecent images of children:
+    - child pornography
+    - indecent images
+  attempting to meet a child following sexual grooming:
+    - grooming
+  sexual activity with a child:
+    - sexual activity with a child
+    - underage sex
+  causing a child to engage in sexual activity:
+    - causing a child to engage in sexual activity
+  sexual assault:
+    - sexual assault
+    - sexual offense
+  access the voicemails of other people:
+    - voicemails
+  conspiracy to defraud:
+    - defraud
+    - conspiracy to defraud
+  possessing criminal property:
+    - possessing criminal property
+  violent disorder:
+    - violent disorder
+  burglary:
+    - burglary
+  theft:
+    - theft
+    - steal
+  fraud:
+    - fraud
+  acquiring a biological toxin:
+    - toxin
+    - biological toxin
+  preventing the lawful and decent burial:
+    - preventing the lawful and decent burial 
+  false accounting:
+    - false accounting
+  causing an explosion with an intent to endanger life:
+    - explosion with an intent to endanger life
+  terrorism:
+    - terrorist
+    - terrorism
+    - bomb
+    - terror
+  domestic abuse:
+    - domestic abuse
+  assault:
+    - assault
+  battery:
+    - battery

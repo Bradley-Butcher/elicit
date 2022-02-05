@@ -94,7 +94,7 @@ def update_confidence():
 
 @app.route('/api/get_cases/<page>', methods=['GET'])
 @cross_origin(origin='*',headers=['Content-Type','Authorization', 'Access-Control-Allow-Origin'])
-def get_case_names(page, per_page=100):
+def get_case_names(page, per_page=300):
     cases = query_db(db, f"SELECT * FROM document LIMIT {per_page} OFFSET {(int(page)-1)*per_page}")
     cases = [c["document_name"] for c in cases]
     menu = []

@@ -30,14 +30,14 @@ def demo_pipeline(
     pipeline.register_schema(schema=question_schema, schema_name="question_schema")
     pipeline.register_schema(schema=categories_schema, schema_name="categories_schema")
     pipeline.register_schema(schema=keyword_schema, schema_name="keyword_schema")
-    pipeline.register_schema(schema=mask_schema, schema_name="mask_schema")
+    # pipeline.register_schema(schema=mask_schema, schema_name="mask_schema")
 
     # Register functions
     pipeline.register_function(nli_extraction)
     pipeline.register_function(sim_extraction)
     pipeline.register_function(keyword_match)
     pipeline.register_function(search)
-    pipeline.register_function(mask_extraction)
+    # pipeline.register_function(mask_extraction)
 
     # Run pipeline - results are stored in db
     pipeline.run(docs)

@@ -8,10 +8,9 @@ offenses:
 vulnerable_victim:
   - Is the victim vulnerable?
   - Was the victim of the crime vulnerable?
-  - victim vulnerable?
   - was the victim young?
   - was the victim old?
-  - was the victim drunk?
+  - did the victim have a disibility?
 race_aggrevating:
   - Was there a racist motivation for the crime?
   - Was the crime aggrevated by racism?

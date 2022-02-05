@@ -8,6 +8,28 @@ from spacy.matcher import Matcher
 
 import spacy
 
+def split_doc(doc: str, max_length: int = 512, token: str = ".") -> list:
+    """Split a document into sentences. 
+    Splitting on the last period <Token> before the max length.
+
+    Args:
+        doc (str): Document to split.
+        max_length (int): Maximum length of each sentence.
+
+    Returns:
+        list: List of sentences.
+    """
+    sections = []
+    current_end = 0
+    while current_end <= len(doc):
+        if current_end + max_length >= len(doc):
+            sections.append(doc[current_end:])
+            break
+        section_end = doc[current_end:current_end + max_length].rfind(token) + current_end
+        sections += [doc[current_end:section_end]]
+        current_end = section_end
+    return sections
+
 def context_from_doc_char(doc: str, start_idx: int, end_idx: int, padding: int = 100) -> str:
     """
     Extracts the context from the document based on the start and end indices.
