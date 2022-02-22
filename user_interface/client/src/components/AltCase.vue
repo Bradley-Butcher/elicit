@@ -205,7 +205,6 @@ export default {
 
 <template>
   <div>
-    <h3 id="variable_title" style="text-align: center">{{ variable }}</h3>
     <div class="accordion" id="caseAccordian">
       <div
         class="accordion-item"

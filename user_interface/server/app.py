@@ -73,7 +73,9 @@ def get_data():
         df.columns = df.iloc[0]
         df = df.iloc[1:]
         return df
+    docs_df = pd.DataFrame(query_db(db, "SELECT document_id, document_name FROM document"))
     df = vars_df.groupby("document_id").apply(lambda x: handle_var(x))
+    df = df.merge(docs_df, on="document_id")
     return df.to_csv(index=False)
 
 def clean_title(title: str) -> str:

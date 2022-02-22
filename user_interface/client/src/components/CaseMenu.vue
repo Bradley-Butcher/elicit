@@ -1,25 +1,14 @@
 <template>
   <div
     class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" data-spy="affix" data-offset-top="0"
-    style="width: 20%; height: 150vh; overflow-y: auto"
+    style="width: 20%; height: 150vh; overflow-y: auto;"
   >
-      <span class="fs-4" style="text-align">Main Pages</span>
-    <hr style="margin-bottom:0;"/>
     <ul class="nav nav-pills flex-column mb-auto" data-spy="affix" data-offset-top="0">
-      <li class="nav-item">
-        <a href="#" class="nav-link text-white" aria-current="page"> About </a>
-      </li>
-      <li>
-        <a href="#" class="nav-link text-white"> Guide </a>
-      </li>
-      <li>
-        <a href="#" class="nav-link text-white"> Stats </a>
-      </li>
-    <span class="fs-4" style="margin-top:16;">Documents</span>
-    <hr style="margin-bottom:0;"/>
+    <span class="fs-4" style="margin-top:16;">Selected Documents</span>
+    <hr style="margin-bottom:5%; width:50%;"/>
       <li v-for="c in sort_menu(menu)" :key="c.title">
           <a :class="{active: c.case_id == selected_case}" class="nav-link text-white" @click="onItemClick(c)"> {{ c.title }} </a>
-          <div class="text-dark" style="height:2px;" :style="styles[case_id]"></div>
+          <div class="text-dark" style="height:2px;" :style="styles[c.case_id]"></div>
       </li>
     </ul>
     <hr />
@@ -34,10 +23,6 @@ export default {
     return {
       page: 1,
       base_menu: [
-        { header: "Main" },
-        { title: "Stats" },
-        { title: "Guide" },
-        { title: "About" },
       ],
       menu: [],
       selected_case: "",
@@ -73,9 +58,10 @@ export default {
         .get(path)
         .then((res) => {
           this.menu = res.data;
-          const first_case = res.data[0].case_id;
-          this.$emit("clicked", first_case);
-          this.selected_case = first_case;
+          console.log(this.menu);
+          // const first_case = res.data[0].case_id;
+          // this.$emit("clicked", first_case);
+          // this.selected_case = first_case;
         })
         .catch((error) => {
           // eslint-disable-next-line

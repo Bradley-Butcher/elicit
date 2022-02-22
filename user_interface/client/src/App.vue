@@ -1,14 +1,13 @@
 <script>
-import CaseNav from "./components/CaseNav.vue";
 import CaseMenu from "./components/CaseMenu.vue";
 import TrainButton from "./components/TrainButton.vue";
 import Filter from "./components/Filter.vue";
 import Export from "./components/Export.vue";
 
 export default {
+  
   name: "App",
   components: {
-    CaseNav,
     CaseMenu,
     TrainButton,
     Filter,
@@ -16,13 +15,12 @@ export default {
   },
   data() {
     return {
-      active_case: "",
-      refresh_case: 0,
     };
   },
   methods: {
     onCaseClicked(value) {
-      this.active_case = value;
+      this.$router.push({name: "Document", params: {id: value}});
+      console.log(value);
     },
     updateCase() {
       
@@ -37,6 +35,7 @@ export default {
     <CaseMenu @clicked="onCaseClicked" style="float: left" />
     <nav id="main_nav" class="navbar navbar-light bg-light">
       <div class="container-fluid">
+        <div class="d-flex">
         <img
           src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Alan_Turing_Institute_logo.svg/1200px-Alan_Turing_Institute_logo.svg.png"
           alt=""
@@ -44,6 +43,20 @@ export default {
           height="30"
           class="me-100"
         />
+        <ul class="navbar-nav ms-5">
+        <div class="d-flex" style="width:200px;">
+          <li class="nav-item me-2">
+            <router-link to="/" class="nav-link">Home</router-link>
+          </li>
+          <li class="nav-item me-2">
+            <a class="nav-link">Stats</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Contact</a>
+          </li>
+        </div>
+        </ul>
+        </div>
         <a class="navbar-brand text-black"><img src="./assets/elecit.png" style="height:35px;"></a>
         <ul class="navbar-nav">
 
@@ -59,15 +72,9 @@ export default {
           </li>
         </div>
         </ul>
+        
       </div>
     </nav>
-    <CaseNav
-      id="case_area"
-      class="d-flex flex-column flex-grow-1"
-      :current_case="active_case"
-      :refresh_case="refresh_case"
-      style="margin-top: 2%"
-    />
     <router-view />
   </div>
 </template>
