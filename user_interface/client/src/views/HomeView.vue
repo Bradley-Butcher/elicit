@@ -1,36 +1,42 @@
+<template>
+  <div>
+    <h1 class="mx-auto mt-3" style="text-align: center">Documents</h1>
+    <StatusTable id="status_table" :document_list="document_display_list"></StatusTable>
+    <div class="ms-5 mt-5" style="height:20%">
+      <v-btn depressed dark class="me-3">Upload Documents</v-btn>
+      <v-btn depressed dark class="me-3">Sort Documents (Train)</v-btn>
+      <TrainButton></TrainButton>
+    </div>
+  </div>
+</template>
+
 <script>
+import StatusTable from "../components/StatusTable.vue";
+import TrainButton from "../components/TrainButton.vue";
 
 export default {
-  name: "HomeView",
+  name: "App",
   components: {
+    StatusTable,
+    TrainButton
   },
-  data() {
+  props: {
+    sidebar: {
+      type: Boolean,
+      default: false,
+    },
+    document_display_list: {
+      type: Array,
+    },
   },
-  methods: {
-  },
+ 
 };
 </script>
 
-<template>
-    <div>
-        <h1>Home</h1>
-    </div>
-</template>
-
-<style lang="scss" scoped>
-#case_area {
-  margin-left: 25%;
-  margin-right: 5%;
-}
-#main_nav {
-  margin-left: 20%;
-}
-.modalz {
-  width: 300px;
-  padding: 30px;
-  box-sizing: border-box;
-  background-color: #fff;
-  font-size: 20px;
-  text-align: center;
+<style scoped>
+#status_table {
+  max-width: 90%;
+  margin: auto;
+  margin-top: 2%;
 }
 </style>

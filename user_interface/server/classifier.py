@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple, Union
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
 import pandas as pd
+import numpy as np
 
 def get_methods(extractions: List[Dict[str, Union[str, float, int]]]) -> List[str]:
     first_variable = extractions[0].variable_id
@@ -16,7 +17,9 @@ def dfs_to_data(variable_df, extraction_df, encoder):
         return variable_df[variable_df.variable_id == variable_id][column].values[0]
     X = extraction_df.pivot(index='variable_id', columns='method', values='confidence').reset_index(level=0)
     var_values = X.variable_id.apply(lambda x: _get_response(x, "variable_value"))
-    X = pd.concat([X, pd.DataFrame(encoder.transform(var_values.values.reshape(-1, 1)).toarray(), dtype=int)], axis=1)
+    # X = pd.concat([X, pd.DataFrame(encoder.transform(var_values.values.reshape(-1, 1)).toarray(), dtype=int)], axis=1)
+    # convert all to floats or ints
+    X = X.apply(pd.to_numeric, errors='ignore')
     y = X.variable_id.apply(lambda x: 1 if _get_response(x, "human_response") == "correct" else 0)
     return X.values, y.values
 
@@ -52,7 +55,7 @@ def get_confidence(variables: List[Dict[str, Union[str, float, int]]], extractio
             continue
         X_train, y_train, X = build_data(local_variables, local_extractions)
         clf = LogisticRegression()
-        clf.fit(X_train[:, 1:], y_train)
-        for i, val in zip(X[:, 0], clf.predict_proba(X[:, 1:])[:, 1]):
+        clf.fit(np.nan_to_num(X_train[:, 1:], 0), y_train)
+        for i, val in zip(X[:, 0], clf.predict_proba(np.nan_to_num(X[:, 1:], 0))[:, 1]):
             values[indicies.index(i)] = val
     return indicies, values

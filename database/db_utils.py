@@ -147,9 +147,13 @@ def insert_new_doc(db, doc_name: str, doc_dict: dict) -> None:
     values = list(doc_dict.keys())
     next_doc_id = get_next_id(db, 'document')
     document_query = f"INSERT INTO document (document_id, document_name) VALUES ({next_doc_id}, '{doc_name}')"
-    db.execute(document_query)
+    try:
+        db.execute(document_query)
+    except sqlite3.IntegrityError:
+        next_doc_id = get_doc_id(db, doc_name)
     #Insert Variables
     for var in values:
+        # check if variable_name is in the database for this document
         for val in doc_dict[var].keys():
             if variable_in_table(db, var, val, next_doc_id):
                 continue

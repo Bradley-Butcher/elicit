@@ -1,16 +1,13 @@
-import { createApp } from 'vue'
+import Vue from 'vue'
 import App from './App.vue'
-
+import vuetify from './plugins/vuetify'
 import router from './router'
-
 import 'bootstrap/dist/css/bootstrap.css';
 
-import VueSidebarMenu from 'vue-sidebar-menu'
-import 'vue-sidebar-menu/dist/vue-sidebar-menu.css'
+Vue.config.productionTip = false
 
-
-createApp(App)
-  .use(router)
-  .use(VueSidebarMenu)
-  .mount('#app')
-  
+new Vue({
+  vuetify,
+  router,
+  render: h => h(App)
+}).$mount('#app')

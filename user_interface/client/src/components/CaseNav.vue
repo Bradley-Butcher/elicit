@@ -1,20 +1,10 @@
 <template>
   <div>
-    <div>
-    <!-- <h1 style="text-align: center" class="d-block float-left display-3">{{ case_title }}</h1> -->
-    </div>
-    <ul id="field_nav" class="nav nav-tabs">
-      <li class="nav-item" v-for="val in variables" :key="val">
-        <a
-          class="nav-link"
-          v-bind:class="[{ active: val == active_variable }, getStatus(val)]"
-          aria-current="page"
-          v-on:click="active_variable = val"
-        >
-          {{ val }}
-        </a>
-      </li>
-    </ul>
+    <v-tabs background-color="#2a2a2e" color="white" dark fixed-tabs show-arrows
+>
+      <v-tab :class="{ 'v-tab--active': val == active_variable }" v-for="val in variables" :key="val" :href="'#tab-' + val" @click="active_variable = val">{{val}}</v-tab>
+      
+    </v-tabs>
     <AltCase
       :variable="active_variable"
       :variable_data="active_variable_data"

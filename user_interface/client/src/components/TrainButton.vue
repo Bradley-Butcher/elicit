@@ -1,6 +1,5 @@
 <template>
-<div>
-  <a type="button" class="btn btn-outline-dark btn-sm" @click="clicked">
+  <v-btn depressed dark type="button" class="btn btn-outline-dark btn-sm" @click="clicked">
     <span>{{ button_text }}</span>
     <span
       class="spinner-border spinner-border-sm"
@@ -9,8 +8,7 @@
       v-if="loading"
 
     ></span>
-  </a>
-  </div>
+  </v-btn>
 </template>
 
 <script>
@@ -41,7 +39,7 @@ export default({
     },
     computed: {
         button_text() {
-            return this.loading ? '' : 'Train';
+            return this.loading ? '' : 'Sort Values (Train)';
         }
     },
 })

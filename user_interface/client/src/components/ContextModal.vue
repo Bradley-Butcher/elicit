@@ -1,6 +1,5 @@
 <template>
-  <teleport to="body">
-    <div
+  <!-- <div
       ref="modal"
       class="modal fade"
       :class="{ show: active, 'd-block': active }"
@@ -39,8 +38,25 @@
           </div>
         </div>
       </div>
-    </div>
-  </teleport>
+    </div> -->
+    <v-dialog
+        transition="dialog-top-transition"
+        max-width="60%"
+        v-model="dialog"
+        data-app
+      >
+    <template v-slot:default="dialog">
+    <v-card>
+      <v-toolbar color="2a2a2e" dark>Wider context for labelling function: {{ modal_title }}</v-toolbar>
+      <v-card-text>
+        <div class="text pa-12">{{formatted_context}}</div>
+      </v-card-text>
+      <v-card-actions class="justify-end">
+        <v-btn text @click="dialog.value = false">Close</v-btn>
+      </v-card-actions>
+    </v-card>
+    </template>
+    </v-dialog>
 </template>
 
 <script>
@@ -50,26 +66,18 @@ export default {
   props: {
     showModal: Boolean,
     evidence: {
-      type: String,
-      default: "",
+      type: Object,
     },
   },
   watch: {
-    showModal: {
-      handler(newVal) {
-        this.active = newVal;
-        const body = document.querySelector("body");
-        this.showModal
-          ? body.classList.add("modal-open")
-          : body.classList.remove("modal-open");
-      },
-      immediate: true,
-      deep: true,
-    },
+    showModal() {
+        this.dialog = !this.dialog;
+    }
   },
   data() {
     return {
       active: this.showModal,
+      dialog: false,
     };
   },
   computed: {

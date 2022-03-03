@@ -30,7 +30,7 @@ export default {
       required: true,
     },
     variable_data: {
-      type: Object,
+      type: Array,
       required: true,
     },
   },
@@ -50,7 +50,6 @@ export default {
           sorted_variables[this.get_total_confidence(this.extracted_data, datum.variable_id)] = datum;
         }
       }
-      console.log(sorted_variables);
       // return sorted list
       return Object.keys(sorted_variables).sort().reverse().map(function(key) {
         return sorted_variables[key];
@@ -204,7 +203,7 @@ export default {
 </script>
 
 <template>
-  <div>
+  <div style="max-height:1000px">
     <div class="accordion" id="caseAccordian">
       <div
         class="accordion-item"
@@ -251,13 +250,13 @@ export default {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="ev in format_evidence(extracted_data, varz.variable_id)" :key="ev">
+                  <tr v-for="ev in format_evidence(extracted_data, varz.variable_id)" :key="ev.id">
                     <th scope="row">
                       <span v-html="add_mark(ev)"></span>
                     </th>
                     <td>{{ ev.method }}</td>
                     <td>{{ Math.round(ev.confidence * 1000) / 10 }}%</td>
-                    <td><button class="btn btn-secondary btn-sm mx-auto" @click="setEvidence(ev)">View</button></td>
+                    <td><v-btn depressed dark tile @click="setEvidence(ev)">View</v-btn></td>
                   </tr>
                 </tbody>
               </table>
@@ -282,7 +281,6 @@ export default {
             class="btn-close me-2 m-auto text-white"
             data-bs-dismiss="toast"
             aria-label="Close"
-            @click="hide_toast"
           ></button>
         </div>
       </div>
@@ -296,7 +294,7 @@ export default {
 #var_table {
   margin-left: auto;
   margin-right: auto;
-  margin-top: 2%;
+  margin-top: 1%;
 }
 #variable_title {
   margin-left: auto;

@@ -5,12 +5,11 @@ from scripts.example_cases import load_test_cases
 from elicit.example_pipelines import demo_pipeline
 
 
-demo_path = Path(__file__).parent.parent / "pdfs" / "demo"
+demo_path = Path(__file__).parent.parent / "pdfs" / "crown court"
 schema_path = Path(__file__).parent.parent / "schema"
 
 if __name__ == "__main__":
-    cases = load_test_cases()
-    filenames = [f for f in demo_path.glob("*.txt")]
+    filenames = [f for f in demo_path.glob("*.pdf")]
     demo_pipeline(
         docs=filenames, 
         question_schema = schema_path / "demo_questions.yml", 

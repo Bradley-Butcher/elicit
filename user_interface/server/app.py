@@ -1,3 +1,4 @@
+from functools import partial
 import sqlite3
 from typing import List
 from flask import Flask, jsonify
@@ -5,7 +6,9 @@ from flask_cors import CORS, cross_origin
 from pathlib import Path
 import json
 from collections import Counter
+from numpy import extract
 import pandas as pd
+import numpy as np
 
 from database.db_utils import connect_db, query_db
 from classifier import get_confidence
@@ -49,6 +52,13 @@ def get_case_evidence(doc_var_ids: List[int]):
         output = query_db(db, f"SELECT * FROM extraction WHERE document_id='{doc}' AND variable_id='{var}'")
         evidence += output
     return jsonify(evidence)
+
+@app.route('/api/get_variable_list', methods=['GET'])
+@cross_origin(origin='*',headers=['Content-Type','Authorization', 'Access-Control-Allow-Origin'])
+def get_variable_list():
+    output = query_db(db, f"SELECT DISTINCT	variable_name FROM variable")
+    return jsonify([v["variable_name"] for v in output])
+
 
 @app.route('/api/submit_answer/<variable_id>/<answer>', methods=['POST', 'GET'])
 @cross_origin(origin='*',headers=['Content-Type','Authorization', 'Access-Control-Allow-Origin'])
@@ -94,10 +104,10 @@ def update_confidence():
     db.commit()
     return "OK"
 
-@app.route('/api/get_cases/<page>', methods=['GET'])
+@app.route('/api/get_cases', methods=['GET'])
 @cross_origin(origin='*',headers=['Content-Type','Authorization', 'Access-Control-Allow-Origin'])
-def get_case_names(page, per_page=300):
-    cases = query_db(db, f"SELECT * FROM document LIMIT {per_page} OFFSET {(int(page)-1)*per_page}")
+def get_case_names():
+    cases = query_db(db, f"SELECT * FROM document")
     cases = [c["document_name"] for c in cases]
     menu = []
     for case in cases:
@@ -107,6 +117,16 @@ def get_case_names(page, per_page=300):
     })
     response = jsonify(menu)
     return response
+
+@app.route('/api/get_document_status', methods=['GET'])
+@cross_origin(origin='*',headers=['Content-Type','Authorization', 'Access-Control-Allow-Origin'])
+def get_document_statuses():
+    documents = query_db(db, f"SELECT * FROM document")
+    variables = query_db(db, f"SELECT * FROM variable")
+    variable_df = pd.DataFrame(variables).merge(pd.DataFrame(documents), on="document_id")
+    result = variable_df.groupby(["variable_name", "document_name"]).apply(lambda x: any(x["human_response"] == "correct")).to_frame("variable_complete").reset_index()
+    result = result.pivot(index="document_name", columns="variable_name", values="variable_complete").reset_index()
+    return jsonify(result.to_json(orient="records"))
 
 @app.route('/api/get_response_statuses/<doc_name>', methods=['GET'])
 @cross_origin(origin='*',headers=['Content-Type','Authorization', 'Access-Control-Allow-Origin'])
@@ -121,6 +141,110 @@ def response_statuses(doc_name):
         results["complete"] += 1 if answered == len(group) else 0
         results["total"] += 1
     return jsonify(results)
+
+@app.route('/api/get_precision/<variable_name>/<binary>', methods=['GET'])
+@cross_origin(origin='*',headers=['Content-Type','Authorization', 'Access-Control-Allow-Origin'])
+def get_precision(variable_name: str, binary: bool):
+    # Get Matrix of Variable Value Confidence
+    variables = query_db(db, f"SELECT * FROM variable WHERE variable_name='{variable_name}'")
+    # get first set of extractions where variable id = the first variable id
+    extractions = query_db(db, f"SELECT * FROM extraction WHERE variable_id={variables[0]['variable_id']}")
+    # get all methods from extractions
+    methods = {e['method'] for e in extractions}
+
+    df = pd.DataFrame(columns=methods.union({"variable_name", "label"}))
+
+    binary = True if binary == "true" else False
+
+    for variable in variables:
+        row = {}
+        for extraction in query_db(db, f"SELECT * FROM extraction WHERE variable_id={variable['variable_id']}"):
+            try:
+                confidence = float(extraction["confidence"])
+            except ValueError:
+                confidence = 0
+            row[extraction["method"]] = confidence
+            row["label"] = 1 if variable["human_response"] == "correct" else 0
+        row["variable_name"] = variable["variable_name"]
+        df = df.append(row, ignore_index=True)
+    method_tp = {}
+    method_total = {}
+    for method in methods:
+        if not binary:
+            method_tp[method] = df[df["label"] == 1][method].sum()
+            method_total[method] = df[method].sum()
+        else:
+            method_tp[method] = (df[df["label"] == 1][method] > 0).sum()
+            method_total[method] = (df[method] > 0).sum()
+    precision = {method: method_tp[method] / method_total[method] for method in methods}
+    data = {
+        "labels": list(precision.keys()),
+        "datasets": [
+            {
+                "label": "Precision",
+                "data": [precision[method] for method in methods],
+                "backgroundColor": "rgba(54,73,93,.5)",
+                "borderColor": "#36495d",
+                "borderWidth": 3
+            }
+        ]
+    }
+    return jsonify(data)
+
+
+@app.route('/api/get_accuracy', methods=['GET'])
+@cross_origin(origin='*',headers=['Content-Type','Authorization', 'Access-Control-Allow-Origin'])
+def get_accuracy():
+    variable_df = pd.DataFrame(query_db(db, f"SELECT * FROM variable"))
+    grouped = variable_df.groupby(["variable_name", "document_id"])
+    def get_total_confidence(row):
+        extractions = query_db(db, f"SELECT * FROM extraction WHERE variable_id={row['variable_id']}")
+        return sum([float(e["confidence"]) for e in extractions])
+    def max_conf(group, majority_vote):
+        # if any have human response correct
+        if not any(group["human_response"] == "correct"):
+            return 0
+        if majority_vote:
+            # get row with max total confidence
+            max_row = group.apply(get_total_confidence, axis=1).idxmax()
+            return 1 if group.loc[max_row]["human_response"] == "correct" else 0
+        else:
+            # get row with max total confidence
+            max_val = group.confidence.astype(float).max()
+            return 1 if group[group["human_response"] == "correct"].confidence.astype(float).max() == max_val else 0
+
+    maj_results = grouped.apply(partial(max_conf, majority_vote=True)).to_frame("correct").reset_index()
+    maj_accuracy = maj_results.groupby("variable_name").correct.sum() / maj_results.groupby("variable_name").correct.size()
+    conf_results = grouped.apply(partial(max_conf, majority_vote=False)).to_frame("correct").reset_index()
+    conf_accuracy = conf_results.groupby("variable_name").correct.sum() / conf_results.groupby("variable_name").correct.size()
+
+    # convert to list of dicts
+    data = {
+        "labels": [a.title() for a in maj_accuracy.index],
+        "datasets": [
+            {
+                "label": "Majority Rules",
+                "data": [maj_accuracy[variable] for variable in maj_accuracy.index],
+                "backgroundColor": "#00796B",
+                "borderColor": "#36495d",
+                "borderWidth": 3
+            },
+            {
+                "label": "LR Confidence",
+                "data": [conf_accuracy[variable] for variable in conf_accuracy.index],
+                "backgroundColor": "#388E3C",
+                "borderColor": "#36495d",
+                "borderWidth": 3
+            }
+            ]
+    }
+    return jsonify(data)
+
+
+
+
+
+
 
 
 

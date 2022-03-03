@@ -1,83 +1,68 @@
 <script>
-import CaseMenu from "./components/CaseMenu.vue";
-import TrainButton from "./components/TrainButton.vue";
-import Filter from "./components/Filter.vue";
-import Export from "./components/Export.vue";
+import NavBar from "./components/NavBar.vue";
+import axios from "axios";
 
 export default {
   
   name: "App",
   components: {
-    CaseMenu,
-    TrainButton,
-    Filter,
-    Export
+    NavBar
   },
   data() {
     return {
+      sidebar_open: false,
+      document_display_list: [],
     };
   },
   methods: {
-    onCaseClicked(value) {
-      this.$router.push({name: "Document", params: {id: value}});
-      console.log(value);
+    updateDocList(doc_list) {
+      this.document_display_list = doc_list;
     },
-    updateCase() {
-      
-    }
+    getDocuments() {
+      const path = "http://127.0.0.1:5000/api/get_cases";
+      axios
+        .get(path)
+        .then((res) => {
+          this.document_display_list = res.data;
+        })
+        .catch((error) => {
+          // eslint-disable-next-line
+          console.error(error);
+        });
+    },
+  },
+  mounted() {
+    this.getDocuments();
   },
 };
 </script>
 
 <template>
+<v-app>
   <div id="app">
     <div id="modals"></div>
-    <CaseMenu @clicked="onCaseClicked" style="float: left" />
-    <nav id="main_nav" class="navbar navbar-light bg-light">
-      <div class="container-fluid">
-        <div class="d-flex">
-        <img
-          src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Alan_Turing_Institute_logo.svg/1200px-Alan_Turing_Institute_logo.svg.png"
-          alt=""
-          width="70"
-          height="30"
-          class="me-100"
-        />
-        <ul class="navbar-nav ms-5">
-        <div class="d-flex" style="width:200px;">
-          <li class="nav-item me-2">
-            <router-link to="/" class="nav-link">Home</router-link>
-          </li>
-          <li class="nav-item me-2">
-            <a class="nav-link">Stats</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">Contact</a>
-          </li>
-        </div>
-        </ul>
-        </div>
-        <a class="navbar-brand text-black"><img src="./assets/elecit.png" style="height:35px;"></a>
-        <ul class="navbar-nav">
-
-        <div class="d-flex" style="width:200px">
-          <li class="nav-item me-2">
-          <Filter class="float-right"/>
-          </li>
-          <li class="nav-item me-2">
-          <TrainButton @retrained="refresh_case+=1" class="float-left"/>
-          </li>
-          <li class="nav-item">
-          <Export class="float-right"/>
-          </li>
-        </div>
-        </ul>
-        
-      </div>
-    </nav>
-    <router-view />
+    <NavBar @open_sidebar="sidebar_open = !sidebar_open">
+    <router-view style="height:100vh;padding-top:64px;padding-bottom:64px" @update_doc_list="updateDocList(list)" :document_display_list="document_display_list" :sidebar="sidebar_open"/>
+    </NavBar>
+    <v-footer
+    dark
+    padless
+    
+  >
+    <v-card
+      flat
+      tile
+      class="lighten-1 white--text text-center"
+      style="height:64px; position:fixed; bottom:0; width:100%"
+    >
+      <v-card-text class="white--text">
+        {{ new Date().getFullYear() }} — <strong>The Turing Institute</strong>
+      </v-card-text>
+    </v-card>
+  </v-footer>
   </div>
-</template>
+  </v-app>  
+</template> 
 
 <style lang="scss" scoped>
 #case_area {
@@ -94,5 +79,8 @@ export default {
   background-color: #fff;
   font-size: 20px;
   text-align: center;
+}
+.router-link-active{
+  color: rgba(0, 0, 0, 0.9);
 }
 </style>

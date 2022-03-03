@@ -1,5 +1,8 @@
 <template>
-  <Popper>
+  <div>
+    <button class="btn">Test</button>
+  </div>
+  <!-- <Popper>
     <a type="button" class="btn btn-outline-dark btn-sm">Filter</a>
     <template #content>
       <div>
@@ -50,15 +53,14 @@
         </div>
       </div>
     </template>
-  </Popper>
+  </Popper> -->
 </template>
 
 <script>
-import Popper from "vue3-popper";
+// import Popper from "vue3-popper";
 
 export default {
   components: {
-    Popper,
   },
   data() {
     return {
