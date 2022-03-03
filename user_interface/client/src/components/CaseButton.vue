@@ -3,7 +3,7 @@
     <h2 class="accordion-header">
       <button
         class="accordion-button"
-        :class="[{ collapsed: active == false }, {answered: status}]"
+        :class="[{ collapsed: active == false }, {answered: status && status != 'null'}]"
         type="button"
         :data-bs-toggle="target"
         data-bs-target="#collapse"
@@ -49,6 +49,7 @@ export default {
     send_signal(signal_type) {
       if (signal_type == this.status) {
         this.$emit("signal", [this.target_id, this.target, null]);
+        this.status = null;
       } else {
         this.$emit("signal", [this.target_id, this.target, signal_type]);
       }

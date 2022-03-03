@@ -203,7 +203,7 @@ def get_accuracy():
     def max_conf(group, majority_vote):
         # if any have human response correct
         if not any(group["human_response"] == "correct"):
-            return 0
+            return np.nan
         if majority_vote:
             # get row with max total confidence
             max_row = group.apply(get_total_confidence, axis=1).idxmax()
@@ -214,10 +214,9 @@ def get_accuracy():
             return 1 if group[group["human_response"] == "correct"].confidence.astype(float).max() == max_val else 0
 
     maj_results = grouped.apply(partial(max_conf, majority_vote=True)).to_frame("correct").reset_index()
-    maj_accuracy = maj_results.groupby("variable_name").correct.sum() / maj_results.groupby("variable_name").correct.size()
+    maj_accuracy = (maj_results.groupby("variable_name").correct.sum() / maj_results.groupby("variable_name").correct.count()).fillna(0)
     conf_results = grouped.apply(partial(max_conf, majority_vote=False)).to_frame("correct").reset_index()
-    conf_accuracy = conf_results.groupby("variable_name").correct.sum() / conf_results.groupby("variable_name").correct.size()
-
+    conf_accuracy = (conf_results.groupby("variable_name").correct.sum() / conf_results.groupby("variable_name").correct.count()).fillna(0)
     # convert to list of dicts
     data = {
         "labels": [a.title() for a in maj_accuracy.index],
