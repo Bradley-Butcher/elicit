@@ -1,48 +1,59 @@
-offenses:
-  - murder
-  - rape
-  - manslaughter
-  - computer misuse
-  - wounding with intent
-  - attempted murder
-  - grievous bodily harm with intent
-  - grievous bodily harm
-  - sexual crimes
-  - misconduct in public office
-  - robbery
-  - administering a poison or noxious substance
-  - making indecent images of children
-  - attempting to meet a child following sexual grooming
-  - sexual activity with a child
-  - causing a child to engage in sexual activity
-  - sexual assault of a child under 13
-  - access the voicemails of other people
-  - conspiracy to defraud
-  - possessing criminal property
-  - violent disorder
-  - burglary
-  - theft
-  - fraud
-  - acquiring a biological toxin
-  - preventing the lawful and decent burial
-  - sexual offences
-  - false accounting
-  - causing an explosion with an intent to endanger life
-  - engaging in conduct in preparation of terrorist acts
-  - unknown
-premeditated:
-  - premeditated
-  - not premeditated
-weapon:
-  - firearm
-  - knife
-  - no weapon
-vulnerable_victim:
-  - vulnerable
-  - not vulnerable
+# VICTIM
+victim_disability:
+  - disability
+  - no disability
+victim_employment_status:
+  - employed
+  - unemployed
+victim_pregnancy:
+  - pregnant
+  - not pregnant
+victim_race:
+  - white
+  - black
+  - asian
+  - mixed race
+  - other
+victim_religion:
+  - christianity
+  - atheism 
+  - islam
+  - hinduism
+  - sikhism
+  - judaism
+  - buddism
+victim_sex:
+  - male
+  - female
+victim_sexual_orientation:
+  - straight
+  - gay
+  - lesbian
+  - bisexual
+  - other
+victim_domestic_abuse:
+  - domestic abuse
+  - no domestic abuse
+# OFFENDER
 prior_convictions:
   - prior convictions
   - no prior convictions
+racially_motivated:
+  - racially motivated
+  - not racially motivated
+sexually_motivated:
+  - sexually motivated
+  - not sexually motivated
+# CIRCUMSTANCES
+premeditated:
+  - premeditated
+  - not premeditated
+remorse:
+  - remorse
+  - no remorse
+vulnerable_victim:
+  - vulnerable
+  - not vulnerable
 physical_abuse:
   - physical abuse
   - no physical abuse
@@ -53,31 +64,9 @@ emotional_abuse:
 age_mitigating:
   - mitigate
   - not mitigate
-race_aggrevating:
-  - race an aggrevating factor
-  - race not an aggrevating factor
-religious_aggrevating:
-  - religion an aggrevating factor
-  - religion not an aggrevating factor
-offender_confession:
-  - confession
-  - no confession
-victim_sex:
-  - male
-  - female
-  - unknown
-victim_age: continuous
-offender_age: continuous
-offender_sex:
-  - male
-  - female
-  - unknown
 relationship:
   - family
   - friend
   - partner
   - colleague
   - none
-victims: raw
-defendants: raw
-outcome: raw

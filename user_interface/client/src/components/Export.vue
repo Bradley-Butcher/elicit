@@ -1,7 +1,7 @@
 <template>
-  <a type="button" @click="getData" class="btn btn-outline-dark btn-sm"
-    >Export</a
-  >
+  <v-btn icon @click="getData">
+    <v-icon>mdi-content-save</v-icon>
+  </v-btn>
 </template>
 
 <script>

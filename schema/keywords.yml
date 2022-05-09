@@ -1,118 +1,129 @@
-offenses:
-  murder:
-    - murder
-    - killed
-  rape:
+victim_disability:
+  disability:
+    - disabled
+    - disability
+  no disability:
+    - not disabled
+victim_employment_status:
+    employed:
+      - employed
+    unemployed:
+      - unemployed
+victim_pregnancy:
+  pregnant:
+    - pregnant
+    - pregnancy
+    - with child
+  not pregnant:
+    - not pregnant
+victim_race:
+  white:
+    - white
+  black:
+    - black
+    - african
+    - carribbean
+  asian:
+    - asian
+    - chinese
+    - indian
+  mixed race:
+    - mixed race
+victim_religion:
+  christianity:
+    - christianity
+    - christian
+  atheism:
+    - atheism
+    - atheist
+  islam:
+    - islam
+    - muslim
+  hinduism:
+    - hinduism
+    - hindu
+  sikhism:
+    - sikhism
+    - sikh
+  judaism:
+    - jewish
+    - judaism
+  buddism:
+    - buddism
+    - buddist
+victim_sex:
+  male:
+    - male
+    - man
+    - boy
+  female:
+    - female
+    - woman
+    - girl
+victim_sexual_orientation:
+  straight:
+    - straight
+    - heterosexual
+  gay:
+    - gay
+    - homosexual
+  lesbian:
+    - gay
+    - homosexual
+  bisexual:
+    - bisexual
+  other:
+    - pansexual
+    - asexual
+victim_domestic_abuse:
+  domestic abuse:
+    - domestic abuse
+    - domestic violence
+    - abusive
+  no domestic abuse:
+    - no domestic abuse
+racially_motivated:
+  racially motivated:
+    - racist
+    - racism
+    - nazi
+    - racially motivated
+  not racially motivated:
+    - no racist
+    - not racist
+sexually_motivated:
+  sexually motivated:
     - rape
-  manslaughter:
-    - manslaughter
-    - killed
-    - accidental death
-  computer misuse:
-    - computer misuse
-    - hacking
-    - virus
-  wounding with intent:
-    - wounding with intent
-    - intended harm
-  attempted murder:
-    - attempted murder
-  grievous bodily harm with intent:
-    - grievous bodily harm with intent
-    - GBH with intent
-  grievous bodily harm:
-    - grievous bodily harm
-    - GBH
-  sexual crimes:
-    - sexual crime
-  misconduct in public office:
-    - misconduct in public office
-    - public office
-  robbery:
-    - robbery
-  administering a poison or noxious substance:
-    - administering a poison
-    - poison
-    - gas
-  making indecent images of children:
-    - child pornography
-    - indecent images
-  attempting to meet a child following sexual grooming:
-    - grooming
-  sexual activity with a child:
-    - sexual activity with a child
-    - underage sex
-  causing a child to engage in sexual activity:
-    - causing a child to engage in sexual activity
-  sexual assault of a child under 13:
-    - sexual assault of a child
-  access the voicemails of other people:
-    - voicemails
-  conspiracy to defraud:
-    - defraud
-    - conspiracy to defraud
-  possessing criminal property:
-    - possessing criminal property
-  violent disorder:
-    - violent disorder
-  burglary:
-    - burglary
-  theft:
-    - theft
-    - steal
-  fraud:
-    - fraud
-  acquiring a biological toxin:
-    - toxin
-    - biological toxin
-  preventing the lawful and decent burial:
-    - preventing the lawful and decent burial 
-  sexual offences:
-   - sexual offense
-  false accounting:
-    - false accounting
-  causing an explosion with an intent to endanger life:
-    - explosion with an intent to endanger life
-  engaging in conduct in preparation of terrorist acts:
-    - engaging in conduct in preparation of terrorist acts
+    - sexual assault
+    - sex
+  not sexually motivated:
+    - not sexually motivated
 premeditated:
   premeditated:
     - premeditated
     - planned
   not premeditated:
-    - not planned
     - not premeditated
-weapon:
-  firearm:
-    - firearm
-    - gun
-    - rifle
-    - shotgun
-  knife:
-    - knife
-    - stabbed
-    - dagger
-  no weapon:
-    - fists
-    - strangulation
-    - pushed
-    - fight
+    - not planned
+    - spontaneous 
+remorse:
+  remorse:
+    - remorseful
+    - remorse
+  no remorse:
+    - no remorse
+    - unrepentant
 vulnerable_victim:
-  vulnerable:
-    - vulnerable
-    - weak
-    - old
-    - young
-  not vulnerable:
-    - not vulnerable
+    vulnerable:
+      - vulnerable
+      - young girl
+      - young boy
+    not vulnerable:
+      - not vulnerable
 prior_convictions:
   prior convictions:
-    - history
-    - previous crimes
     - prior convictions
-    - pattern of behaviour
   no prior convictions:
-    - previous good standing
     - no prior convictions
 physical_abuse:
   physical abuse:
@@ -136,46 +147,6 @@ age_mitigating:
   not mitigate:
     - no mitigating factors
     - age does not mitigate
-race_aggrevating:
-  race an aggrevating factor:
-    - race an aggrevating factor
-    - racist
-    - hate crime
-    - race
-  race not an aggrevating factor:
-    - race not an aggrevating factor
-    - not a hate crime
-religious_aggrevating:
-  religion an aggrevating factor:
-    - religious
-    - religion
-  religion not an aggrevating factor:
-    - religion not an aggrevating factor
-offender_confession:
-  confession:
-    - confessed
-    - plead guilty
-    - pleaded guilty
-  no confession:
-    - denied
-victim_sex:
-  male:
-    - man
-    - male
-    - boy
-  female:
-    - female
-    - woman
-    - girl
-offender_sex:
-  male:
-    - man
-    - male
-    - boy  
-  female:
-    - female
-    - woman
-    - girl 
 relationship:
   family:
     - family

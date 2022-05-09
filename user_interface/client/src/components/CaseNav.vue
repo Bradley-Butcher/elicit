@@ -1,9 +1,17 @@
 <template>
   <div>
-    <v-tabs background-color="#2a2a2e" color="white" dark fixed-tabs show-arrows
->
-      <v-tab :class="{ 'v-tab--active': val == active_variable }" v-for="val in variables" :key="val" :href="'#tab-' + val" @click="active_variable = val">{{val}}</v-tab>
-      
+    <v-tabs background-color="#2a2a2e" color="white" dark show-arrows>
+      <v-tab
+        :class="{
+          'v-tab--active': val == active_variable,
+          processed: getStatus(val),
+        }"
+        v-for="val in variables"
+        :key="val"
+        :href="'#tab-' + val"
+        @click="active_variable = val"
+        >{{ val }}</v-tab
+      >
     </v-tabs>
     <AltCase
       :variable="active_variable"
@@ -21,7 +29,7 @@ export default {
   name: "CaseNav",
   props: ["current_case", "refresh_case"],
   components: {
-    AltCase  
+    AltCase,
   },
   data() {
     return {
@@ -60,24 +68,18 @@ export default {
     },
     getStatus(variable_name) {
       let count = 0;
-      let total_count = 0;
       for (let i = 0; i < this.variable_list.length; i++) {
         let key = this.variable_list[i];
-        if(key.variable_name == variable_name) {
-          total_count+=1;
-          if (key.human_response) {
-            count+=1;
-          }
+        if (key.variable_name == variable_name && key.human_response) {
+          count += 1;
         }
       }
       if (count == 0) {
-        return {"partial": false, "complete": false};
-      } else if (count == total_count) {
-        return {"partial": false, "complete": true};
+        return false;
       } else {
-        return {"partial": true, "complete": false};
+        return true;
       }
-    }
+    },
   },
   computed: {
     variables() {
@@ -128,5 +130,9 @@ export default {
 
 .title_thing {
   display: inline;
+}
+
+.processed {
+  color: #7ba786 !important;
 }
 </style>

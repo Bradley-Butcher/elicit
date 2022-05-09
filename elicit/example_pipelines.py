@@ -9,15 +9,14 @@ from elicit.labelling_functions.mask_transformer import mask_extraction
 
 from elicit.pipeline import Pipeline
 
-def demo_pipeline(
+def core_pipeline(
     docs: List[Path],
     question_schema: Path,
     categories_schema: Path,
     keyword_schema: Path,
-    mask_schema: Path,
     ):
     """
-    Demo pipeline showing how to use the pipeline.
+    Core pipeline showing how to use the pipeline.
 
     :param pdfs: The list of PDFs to process.
     :param question_schema: The question schema.

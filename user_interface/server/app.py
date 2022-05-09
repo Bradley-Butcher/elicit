@@ -124,7 +124,7 @@ def get_document_statuses():
     documents = query_db(db, f"SELECT * FROM document")
     variables = query_db(db, f"SELECT * FROM variable")
     variable_df = pd.DataFrame(variables).merge(pd.DataFrame(documents), on="document_id")
-    result = variable_df.groupby(["variable_name", "document_name"]).apply(lambda x: any(x["human_response"] == "correct")).to_frame("variable_complete").reset_index()
+    result = variable_df.groupby(["variable_name", "document_name"]).apply(lambda x: any((x["human_response"] == "correct") | (x["human_response"] == "unknown") | (x["human_response"] == "incorrect"))).to_frame("variable_complete").reset_index()
     result = result.pivot(index="document_name", columns="variable_name", values="variable_complete").reset_index()
     return jsonify(result.to_json(orient="records"))
 
@@ -195,46 +195,56 @@ def get_precision(variable_name: str, binary: bool):
 @app.route('/api/get_accuracy', methods=['GET'])
 @cross_origin(origin='*',headers=['Content-Type','Authorization', 'Access-Control-Allow-Origin'])
 def get_accuracy():
-    variable_df = pd.DataFrame(query_db(db, f"SELECT * FROM variable"))
-    grouped = variable_df.groupby(["variable_name", "document_id"])
-    def get_total_confidence(row):
-        extractions = query_db(db, f"SELECT * FROM extraction WHERE variable_id={row['variable_id']}")
-        return sum([float(e["confidence"]) for e in extractions])
-    def max_conf(group, majority_vote):
-        # if any have human response correct
-        if not any(group["human_response"] == "correct"):
-            return np.nan
-        if majority_vote:
-            # get row with max total confidence
-            max_row = group.apply(get_total_confidence, axis=1).idxmax()
-            return 1 if group.loc[max_row]["human_response"] == "correct" else 0
-        else:
-            # get row with max total confidence
-            max_val = group.confidence.astype(float).max()
-            return 1 if group[group["human_response"] == "correct"].confidence.astype(float).max() == max_val else 0
+    df = pd.DataFrame(query_db(db, f"SELECT variable.document_id, extraction.confidence as extraction_confidence, variable.confidence as variable_confidence, human_response, variable_name, variable_value FROM extraction LEFT JOIN variable ON extraction.variable_id=variable.variable_id"))
+    df["extraction_confidence"] = df["extraction_confidence"].astype(float)
+    grouped = df.groupby(["variable_name", "document_id"])
 
-    maj_results = grouped.apply(partial(max_conf, majority_vote=True)).to_frame("correct").reset_index()
-    maj_accuracy = (maj_results.groupby("variable_name").correct.sum() / maj_results.groupby("variable_name").correct.count()).fillna(0)
-    conf_results = grouped.apply(partial(max_conf, majority_vote=False)).to_frame("correct").reset_index()
-    conf_accuracy = (conf_results.groupby("variable_name").correct.sum() / conf_results.groupby("variable_name").correct.count()).fillna(0)
+    def get_topk(group, k: int=1):
+        g = group.groupby("variable_value").extraction_confidence.sum().sort_values(ascending=False).head(k).reset_index()
+        g = g[g["extraction_confidence"] > 0]["variable_value"].tolist()
+        if len(g) > 0:
+            return g
+        else:
+            return "abstain"
+    
+    def get_human_response(group):
+        # if any human response is correct return the variable value
+        if any(group["human_response"] == "correct"):
+            return group[group["human_response"] == "correct"]["variable_value"].tolist()[0]
+        if not any(group["human_response"]):
+            return "not complete"
+        return "abstain"
+
+    response_df = grouped.apply(get_human_response).to_frame("response").reset_index()
+    topk_df = grouped.apply(get_topk, k=1).to_frame("topk").reset_index()
+
+    df = topk_df.merge(response_df, on=["variable_name", "document_id"])
+
+    df = df[df.response != "not complete"]
+    df = df[df.topk != "abstain"]
+
+    df["correct"] = df.apply(lambda x: x["response"] in x["topk"], axis=1)
+
+    accuracy = df.groupby("variable_name").apply(lambda x: x["correct"].sum() / len(x)).to_frame("accuracy").reset_index()
+
     # convert to list of dicts
     data = {
-        "labels": [a.title() for a in maj_accuracy.index],
+        "labels": [a.title() for a in accuracy.variable_name],
         "datasets": [
             {
                 "label": "Majority Rules",
-                "data": [maj_accuracy[variable] for variable in maj_accuracy.index],
+                "data": accuracy.accuracy.to_list(),
                 "backgroundColor": "#00796B",
                 "borderColor": "#36495d",
                 "borderWidth": 3
             },
-            {
-                "label": "LR Confidence",
-                "data": [conf_accuracy[variable] for variable in conf_accuracy.index],
-                "backgroundColor": "#388E3C",
-                "borderColor": "#36495d",
-                "borderWidth": 3
-            }
+            # {
+            #     "label": "LR Confidence",
+            #     "data": [conf_accuracy[variable] for variable in conf_accuracy.index],
+            #     "backgroundColor": "#388E3C",
+            #     "borderColor": "#36495d",
+            #     "borderWidth": 3
+            # }
             ]
     }
     return jsonify(data)

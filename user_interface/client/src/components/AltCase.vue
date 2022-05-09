@@ -9,7 +9,7 @@ export default {
   name: "App",
   components: {
     CaseButton,
-    ContextModal
+    ContextModal,
   },
   data() {
     return {
@@ -34,27 +34,32 @@ export default {
       required: true,
     },
   },
-  watch : {
+  watch: {
     variable_data() {
       this.getCase();
-    }
+    },
   },
   computed: {
     sorted_variable_data() {
       let sorted_variables = {};
-      for(let i = 0; i < this.variable_data.length; i++) {
+      for (let i = 0; i < this.variable_data.length; i++) {
         let datum = this.variable_data[i];
-        if(datum.confidence) {
+        if (datum.confidence) {
           sorted_variables[datum.confidence] = datum;
         } else {
-          sorted_variables[this.get_total_confidence(this.extracted_data, datum.variable_id)] = datum;
+          sorted_variables[
+            this.get_total_confidence(this.extracted_data, datum.variable_id)
+          ] = datum;
         }
       }
       // return sorted list
-      return Object.keys(sorted_variables).sort().reverse().map(function(key) {
-        return sorted_variables[key];
-      });
-    }
+      return Object.keys(sorted_variables)
+        .sort()
+        .reverse()
+        .map(function (key) {
+          return sorted_variables[key];
+        });
+    },
   },
   methods: {
     setEvidence(evidence) {
@@ -74,7 +79,9 @@ export default {
       return ids;
     },
     getCase() {
-      const path = "http://127.0.0.1:5000/api/case_evidence/" + this.getIds(this.variable_data);
+      const path =
+        "http://127.0.0.1:5000/api/case_evidence/" +
+        this.getIds(this.variable_data);
       axios
         .get(path)
         .then((res) => {
@@ -86,7 +93,8 @@ export default {
         });
     },
     setAnswer(variable_id, answer) {
-      const path = "http://127.0.0.1:5000/api/submit_answer/" + variable_id + "/" + answer;
+      const path =
+        "http://127.0.0.1:5000/api/submit_answer/" + variable_id + "/" + answer;
       axios
         .post(path)
         .then(() => {
@@ -117,14 +125,14 @@ export default {
           data.push(input_data[i]);
         }
       }
-      return data
+      return data;
     },
     get_agreement(input_data, variable_id) {
       let agreement_count = 0;
       let total_count = 0;
       for (const i in input_data) {
         if (input_data[i].variable_id == variable_id) {
-          if(input_data[i].confidence > 0) {
+          if (input_data[i].confidence > 0) {
             agreement_count += 1;
           }
           total_count += 1;
@@ -145,12 +153,16 @@ export default {
       if (!var_data.confidence) {
         return this.get_agreement(input_data, variable_id);
       } else {
-        return "Confidence: " + Number( Number(var_data.confidence * 100).toPrecision(4) ) + "%";
+        return (
+          "Confidence: " +
+          Number(Number(var_data.confidence * 100).toPrecision(4)) +
+          "%"
+        );
       }
     },
     get_best_evidence(item) {
       //Change to use some "best evidence variable" and "exact context "
-      const ev = this.format_evidence(this.extracted_data, item.variable_id)
+      const ev = this.format_evidence(this.extracted_data, item.variable_id);
       const best_ev = ev.sort((a, b) => {
         return b.confidence - a.confidence;
       })[0];
@@ -172,7 +184,10 @@ export default {
       }
       let substr = evidence.exact_context;
       let regex = new RegExp(substr, "gi");
-      let new_text = evidence.local_context.replace(regex, "<mark>" + substr + "</mark>");
+      let new_text = evidence.local_context.replace(
+        regex,
+        "<mark>" + substr + "</mark>"
+      );
       return new_text;
     },
     show_toast(text) {
@@ -203,11 +218,12 @@ export default {
 </script>
 
 <template>
-  <div style="max-height:1000px">
+  <div style="max-height: 1000px">
     <div class="accordion" id="caseAccordian">
       <div
         class="accordion-item"
-        v-for="varz in sorted_variable_data" :key="varz.variable_id"
+        v-for="varz in sorted_variable_data"
+        :key="varz.variable_id"
         :id="varz.variable_id"
       >
         <CaseButton
@@ -219,14 +235,16 @@ export default {
           @signal="collect_answer"
           v-if="renderComponent"
         >
-          <div class="p-2 bg-primary text-white">Value: {{ varz.variable_value }}</div>
+          <div class="p-2 bg-primary text-white">
+            Value: {{ varz.variable_value }}
+          </div>
           <div class="vr bg-dark"></div>
           <div class="p-2 bg-secondary text-white">
             <!-- {{ varz.confidence }} -->
             {{ get_confidence(varz, extracted_data, varz.variable_id) }}
           </div>
           <div class="vr bg-dark"></div>
-          <div class="p-2 bg-warning text-white" style="max-width:50%;">
+          <div class="p-2 bg-warning text-white" style="max-width: 50%">
             Evidence: {{ get_best_evidence(varz) }}
           </div>
         </CaseButton>
@@ -250,13 +268,23 @@ export default {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="ev in format_evidence(extracted_data, varz.variable_id)" :key="ev.id">
+                  <tr
+                    v-for="ev in format_evidence(
+                      extracted_data,
+                      varz.variable_id
+                    )"
+                    :key="ev.id"
+                  >
                     <th scope="row">
                       <span v-html="add_mark(ev)"></span>
                     </th>
                     <td>{{ ev.method }}</td>
                     <td>{{ Math.round(ev.confidence * 1000) / 10 }}%</td>
-                    <td><v-btn depressed dark tile @click="setEvidence(ev)">View</v-btn></td>
+                    <td>
+                      <v-btn depressed dark tile @click="setEvidence(ev)"
+                        >View</v-btn
+                      >
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -285,7 +313,11 @@ export default {
         </div>
       </div>
     </div>
-    <ContextModal :evidence="active_evidence" :showModal="showModalNow" @closeModal="closeModalNow"></ContextModal>
+    <ContextModal
+      :evidence="active_evidence"
+      :showModal="showModalNow"
+      @closeModal="closeModalNow"
+    ></ContextModal>
   </div>
 </template>
 
