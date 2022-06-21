@@ -195,13 +195,15 @@ def get_precision(variable_name: str, binary: bool):
 @app.route('/api/get_accuracy', methods=['GET'])
 @cross_origin(origin='*',headers=['Content-Type','Authorization', 'Access-Control-Allow-Origin'])
 def get_accuracy():
-    df = pd.DataFrame(query_db(db, f"SELECT variable.document_id, extraction.confidence as extraction_confidence, variable.confidence as variable_confidence, human_response, variable_name, variable_value FROM extraction LEFT JOIN variable ON extraction.variable_id=variable.variable_id"))
+    df = pd.DataFrame(query_db(db, f"SELECT variable.document_id, document.document_name, extraction.confidence as extraction_confidence, variable.confidence as variable_confidence, human_response, variable_name, variable_value FROM extraction LEFT JOIN variable ON extraction.variable_id=variable.variable_id LEFT JOIN document ON variable.document_id=document.document_id"))
     df["extraction_confidence"] = df["extraction_confidence"].astype(float)
-    grouped = df.groupby(["variable_name", "document_id"])
+    df["variable_confidence"] = df["variable_confidence"].astype(float)
+    grouped = df.groupby(["variable_name", "document_name"])
 
-    def get_topk(group, k: int=1):
-        g = group.groupby("variable_value").extraction_confidence.sum().sort_values(ascending=False).head(k).reset_index()
-        g = g[g["extraction_confidence"] > 0]["variable_value"].tolist()
+    def get_topk(group, var: str, k: int=1, threshold: float = 0, operator: str = "sum"):
+        g = group.groupby("variable_value").agg({var: operator, "extraction_confidence": "sum"}).sort_values(by=var, ascending=False).head(k).reset_index()
+        g = g[g["extraction_confidence"] > 0]
+        g = g[g[var] > threshold]["variable_value"].tolist()
         if len(g) > 0:
             return g
         else:
@@ -216,16 +218,25 @@ def get_accuracy():
         return "abstain"
 
     response_df = grouped.apply(get_human_response).to_frame("response").reset_index()
-    topk_df = grouped.apply(get_topk, k=1).to_frame("topk").reset_index()
-
-    df = topk_df.merge(response_df, on=["variable_name", "document_id"])
-
+    topk_df = grouped.apply(get_topk, var="extraction_confidence", k=1).to_frame("topk").reset_index()
+    lr_df = grouped.apply(get_topk, var="variable_confidence", k=1, threshold=0, operator="first").to_frame("lr").reset_index()
+    
+    df = topk_df.merge(response_df, on=["variable_name", "document_name"])
     df = df[df.response != "not complete"]
     df = df[df.topk != "abstain"]
-
     df["correct"] = df.apply(lambda x: x["response"] in x["topk"], axis=1)
 
-    accuracy = df.groupby("variable_name").apply(lambda x: x["correct"].sum() / len(x)).to_frame("accuracy").reset_index()
+    topk_accuracy = df.groupby("variable_name").apply(lambda x: x["correct"].sum() / len(x)).to_frame("topk_accuracy").reset_index()
+
+    df = lr_df.merge(response_df, on=["variable_name", "document_name"])
+    df = df[df.response != "not complete"]
+    df = df[df.lr != "abstain"]
+    df["correct"] = df.apply(lambda x: x["response"] in x["lr"], axis=1)
+
+    lr_accuracy = df.groupby("variable_name").apply(lambda x: x["correct"].sum() / len(x)).to_frame("lr_accuracy").reset_index()
+
+    accuracy = topk_accuracy.merge(lr_accuracy, on="variable_name", how="left")
+    accuracy = accuracy.fillna(0)
 
     # convert to list of dicts
     data = {
@@ -233,18 +244,18 @@ def get_accuracy():
         "datasets": [
             {
                 "label": "Majority Rules",
-                "data": accuracy.accuracy.to_list(),
+                "data": accuracy.topk_accuracy.to_list(),
                 "backgroundColor": "#00796B",
                 "borderColor": "#36495d",
                 "borderWidth": 3
             },
-            # {
-            #     "label": "LR Confidence",
-            #     "data": [conf_accuracy[variable] for variable in conf_accuracy.index],
-            #     "backgroundColor": "#388E3C",
-            #     "borderColor": "#36495d",
-            #     "borderWidth": 3
-            # }
+            {
+                "label": "LR Confidence",
+                "data": accuracy.lr_accuracy.to_list(),
+                "backgroundColor": "#388E3C",
+                "borderColor": "#36495d",
+                "borderWidth": 3
+            }
             ]
     }
     return jsonify(data)

@@ -16,7 +16,7 @@ from elicit.pipeline import labelling_function
 warnings.filterwarnings("ignore")
 
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer('all-MiniLM-L6-v2', device='cuda')
 
 def similarity(answer: str, levels: List[str]):
     """
