@@ -16,7 +16,7 @@ export default {
   },
   methods: {
     onCaseClicked(value) {
-      this.$router.push({name: "Document", params: {id: value}});
+      this.$router.push({ name: "Document", params: { id: value } });
       this.active_case = value;
     },
     getNextDocument() {
@@ -59,41 +59,44 @@ export default {
 </script>
 
 <template>
-  <div style="height:80vh">
-  <div class="d-flex flex-row flex-grow justify-center align-center" style="margin-top:5%;">
-    <v-btn tile depressed @click="getPrevDocument">
-      <v-icon
-        right
-        dark
-        raised
-        class="me-2"
-      >
-        mdi-arrow-left-bold
-      </v-icon>
-      Previous Document
-  </v-btn>
-  <CaseNav
-      id="case_area"
-      class="d-flex flex-column flex-grow-1"
-      :current_case="$route.params.id"
-      :refresh_case="refresh_case"
-    />
-    <v-btn tile depressed @click="getNextDocument">
-      Next Document
-      <v-icon
-        right
-        dark
-        raised
-      >
-        mdi-arrow-right-bold
-      </v-icon>
-  </v-btn>
-  </div>
+  <div>
+    <v-content>
+      <v-container fluid fill-height style="margin: 0px; padding: 0px; max-width: 99%">
+        <v-row :align="center" style="height: 250px;">
+          <v-col class="cblock" align="center" cols=5>
+            <h3 class="ma-2 pa-2">Control Panel</h3>
+            <v-btn tile depressed @click="getPrevDocument">
+              <v-icon right dark raised class="me-2">
+                mdi-arrow-left-bold
+              </v-icon>
+              Previous Document
+            </v-btn>
 
-      <CaseMenu @clicked="onCaseClicked" :active_case="active_case" style="float: left" :sidebar="sidebar" :document_list="document_display_list"/>
+            <v-btn tile depressed @click="getNextDocument">
+              Next Document
+              <v-icon right dark raised>
+                mdi-arrow-right-bold
+              </v-icon>
+            </v-btn>
 
+          </v-col>
+          <v-col class="cblock">
+            <v-card class="pa-2" outlined tile>
+              One of two columns
+            </v-card>
+          </v-col>
+        </v-row>
+        <v-row class="fill-height">
+          <v-col class="cblock ma-0 pa-0 fill-height" align="center">
+            <CaseNav id="case_area" :current_case="$route.params.id" :refresh_case="refresh_case"
+              style="max-width:95%" />
+          </v-col>
+        </v-row>
+      </v-container>
+    </v-content>
+    <CaseMenu @clicked="onCaseClicked" :active_case="active_case" style="float: left" :sidebar="sidebar"
+      :document_list="document_display_list" />
   </div>
-  
 </template>
 
 <style lang="scss" scoped>
@@ -105,9 +108,11 @@ export default {
   margin-left: 2%;
 
 }
+
 #main_nav {
   margin-left: 20%;
 }
+
 .modalz {
   width: 300px;
   padding: 30px;
@@ -115,5 +120,9 @@ export default {
   background-color: #fff;
   font-size: 20px;
   text-align: center;
+}
+
+.cblock {
+  border: 1px dashed black;
 }
 </style>

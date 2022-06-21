@@ -6,7 +6,7 @@ import ContextModal from "./ContextModal.vue";
 import axios from "axios";
 
 export default {
-  name: "App",
+  name: "Extractions",
   components: {
     CaseButton,
     ContextModal,
@@ -205,12 +205,12 @@ export default {
       this.active_tab = -1;
       this.show_toast(
         "<span><strong>" +
-          subject +
-          "</strong> set as: <strong>" +
-          answer +
-          "</strong> for variable: <strong>" +
-          this.variable +
-          "</strong></span>"
+        subject +
+        "</strong> set as: <strong>" +
+        answer +
+        "</strong> for variable: <strong>" +
+        this.variable +
+        "</strong></span>"
       );
     },
   },
@@ -220,21 +220,10 @@ export default {
 <template>
   <div style="max-height: 1000px">
     <div class="accordion" id="caseAccordian">
-      <div
-        class="accordion-item"
-        v-for="varz in sorted_variable_data"
-        :key="varz.variable_id"
-        :id="varz.variable_id"
-      >
-        <CaseButton
-          :target="varz.variable_value"
-          :target_id="varz.variable_id"
-          @tabclick="triggerTab"
-          :active="varz.variable_value == active_tab"
-          :status="varz.human_response"
-          @signal="collect_answer"
-          v-if="renderComponent"
-        >
+      <div class="accordion-item" v-for="varz in sorted_variable_data" :key="varz.variable_id" :id="varz.variable_id">
+        <CaseButton :target="varz.variable_value" :target_id="varz.variable_id" @tabclick="triggerTab"
+          :active="varz.variable_value == active_tab" :status="varz.human_response" @signal="collect_answer"
+          v-if="renderComponent">
           <div class="p-2 bg-primary text-white">
             Value: {{ varz.variable_value }}
           </div>
@@ -249,13 +238,8 @@ export default {
           </div>
         </CaseButton>
 
-        <div
-          id="collapseOne"
-          class="accordion-collapse collapse"
-          :class="{ show: active_tab == varz.variable_value }"
-          aria-labelledby="headingOne"
-          data-bs-parent="#accordionExample"
-        >
+        <div id="collapseOne" class="accordion-collapse collapse" :class="{ show: active_tab == varz.variable_value }"
+          aria-labelledby="headingOne" data-bs-parent="#accordionExample">
           <div class="accordion-body">
             <div class="table-responsive">
               <table id="var_table" class="table justify-content-center">
@@ -268,22 +252,17 @@ export default {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="ev in format_evidence(
-                      extracted_data,
-                      varz.variable_id
-                    )"
-                    :key="ev.id"
-                  >
+                  <tr v-for="ev in format_evidence(
+                    extracted_data,
+                    varz.variable_id
+                  )" :key="ev.id">
                     <th scope="row">
                       <span v-html="add_mark(ev)"></span>
                     </th>
                     <td>{{ ev.method }}</td>
                     <td>{{ Math.round(ev.confidence * 1000) / 10 }}%</td>
                     <td>
-                      <v-btn depressed dark tile @click="setEvidence(ev)"
-                        >View</v-btn
-                      >
+                      <v-btn depressed dark tile @click="setEvidence(ev)">View</v-btn>
                     </td>
                   </tr>
                 </tbody>
@@ -294,40 +273,29 @@ export default {
       </div>
     </div>
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-      <div
-        id="liveToast"
-        class="toast align-items-center fade"
-        :class="{ hide: toast_showing == false, show: toast_showing == true }"
-        role="alert"
-        aria-live="assertive"
-        aria-atomic="true"
-      >
+      <div id="liveToast" class="toast align-items-center fade"
+        :class="{ hide: toast_showing == false, show: toast_showing == true }" role="alert" aria-live="assertive"
+        aria-atomic="true">
         <div class="d-flex bg-dark text-white">
           <div class="toast-body bg-dark text-white" v-html="toast_text"></div>
-          <button
-            type="button"
-            class="btn-close me-2 m-auto text-white"
-            data-bs-dismiss="toast"
-            aria-label="Close"
-          ></button>
+          <button type="button" class="btn-close me-2 m-auto text-white" data-bs-dismiss="toast"
+            aria-label="Close"></button>
         </div>
       </div>
     </div>
-    <ContextModal
-      :evidence="active_evidence"
-      :showModal="showModalNow"
-      @closeModal="closeModalNow"
-    ></ContextModal>
+    <ContextModal :evidence="active_evidence" :showModal="showModalNow" @closeModal="closeModalNow"></ContextModal>
   </div>
 </template>
 
 <style>
 @import "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css";
+
 #var_table {
   margin-left: auto;
   margin-right: auto;
   margin-top: 1%;
 }
+
 #variable_title {
   margin-left: auto;
   margin-right: auto;
