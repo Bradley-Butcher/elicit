@@ -15,7 +15,9 @@ from elicit.pipeline import labelling_function
 
 warnings.filterwarnings("ignore")
 
-classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=0)
+classifier = pipeline("zero-shot-classification",
+                      model="facebook/bart-large-mnli", device=0)
+
 
 def extract_value(answers: List[Tuple[str, float, int, int]], doc: str, threshold: float) -> Union[DocumentField, List[DocumentField]]:
     """
@@ -30,9 +32,10 @@ def extract_value(answers: List[Tuple[str, float, int, int]], doc: str, threshol
     values = [(re.findall(r'\d+', answer)[0], score, start, end)
               for answer, score, start, end in answers if score > threshold and re.findall(r'\d+', answer)]
     if not values:
-        return DocumentField(value="unknown", confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value="unknown", confidence=0, evidence=Evidence.abstain())
     values, context = compress(values)
-    output = [DocumentField(value=k, confidence=v, evidence=Evidence.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in values.items()]
+    output = [DocumentField(value=k, confidence=v, evidence=Evidence.from_character_startend(
+        doc, context[k]["start"], context[k]["end"])) for k, v in values.items()]
     if len(output) == 1:
         return output[0]
     return output
@@ -60,6 +63,7 @@ def compress(candidates: List[Tuple[str, float, int, int]]) -> Dict[str, float]:
         prob_sum += ci[1]
     return {k: v / prob_sum for k, v in prob_dict.items()}, max_context
 
+
 def match_classify(answers: List[Tuple[str, float]], doc: str, levels: List[str], threshold: float) -> Tuple[str, float]:
     """
     Match answers from the Q&A Transformer to the levels of the variable.
@@ -72,7 +76,7 @@ def match_classify(answers: List[Tuple[str, float]], doc: str, levels: List[str]
     :return: Tuple of the matched level and the confidence of the match.
     """
     if not answers:
-        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.abstain())
     candidates = []
     for answer, score, start, end in answers:
         if answer in levels:
@@ -80,18 +84,19 @@ def match_classify(answers: List[Tuple[str, float]], doc: str, levels: List[str]
         else:
             output = classifier(answer, [*levels, ""], multi_label=True)
             candidates += [(output["labels"][i], output["scores"][i] * score, start, end)
-                        for i in range(len(output["labels"])) if output["scores"][i] > threshold]
+                           for i in range(len(output["labels"])) if output["scores"][i] > threshold]
     if not candidates:
-        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.abstain())
     compressed_candidates, context = compress(candidates)
     max_candidate = max(compressed_candidates, key=compressed_candidates.get)
     output = DocumentField(
         value=max_candidate,
         confidence=compressed_candidates[max_candidate],
-        evidence=Evidence.from_character_startend(doc, context[max_candidate]["start"], context[max_candidate]["end"])
+        evidence=Evidence.from_character_startend(
+            doc, context[max_candidate]["start"], context[max_candidate]["end"])
     )
     if output.value == "":
-        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.abstain())
     return output
 
 
@@ -105,7 +110,7 @@ def extract_top(answers: List[Tuple[str, float, int, int]], doc: str) -> List[Do
     :return: List of CaseField objects with the extracted values.
     """
     if not answers:
-        return DocumentField(value="unknown", confidence=0, evidence=Evidence.no_match())
+        return DocumentField(value="unknown", confidence=0, evidence=Evidence.abstain())
     answers, context = compress(answers)
     return [DocumentField(value=k, confidence=v, evidence=Evidence.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in answers.items()]
 
@@ -129,18 +134,21 @@ def process_answers(answers: Dict[str, Tuple[str, float, int, int]], doc: str, c
             extracted_variables[key] = extract_value(
                 answers=answers[key], doc=doc, threshold=threshold)
         elif variables[key] == "raw":
-            extracted_variables[key] = extract_top(answers=answers[key], doc=doc)
+            extracted_variables[key] = extract_top(
+                answers=answers[key], doc=doc)
         else:
-            extracted_variables[key] = match_classify(answers=answers[key], doc=doc, levels=variables[key], threshold=threshold)
+            extracted_variables[key] = match_classify(
+                answers=answers[key], doc=doc, levels=variables[key], threshold=threshold)
     return extracted_variables
+
 
 @labelling_function(labelling_method="NLI Transformer", required_schemas=["question_schema", "categories_schema"])
 def nli_extraction(
-    doc: str, 
+    doc: str,
     document: Document,
-    question_schema: Path, 
-    categories_schema: Path, 
-    match_threshold: float = 0.3, 
+    question_schema: Path,
+    categories_schema: Path,
+    match_threshold: float = 0.3,
     qa_threshold: float = 0.5,
     device=None
 ) -> Document:
@@ -156,7 +164,9 @@ def nli_extraction(
 
     :return: Case object with extracted variables.
     """
-    answers = extract_answers(doc=doc, case=document, question_schema=question_schema, threshold=qa_threshold)
-    answer_dict = process_answers(answers, doc=doc, categories_schema=categories_schema, threshold=match_threshold)
+    answers = extract_answers(
+        doc=doc, case=document, question_schema=question_schema, threshold=qa_threshold)
+    answer_dict = process_answers(
+        answers, doc=doc, categories_schema=categories_schema, threshold=match_threshold)
     document.add_dict(answer_dict)
     return document

@@ -4,6 +4,7 @@ from elicit.document import Document, DocumentField, Evidence
 from dataclasses import asdict, dataclass
 from database.db_utils import connect_db, insert_doc_from_dict
 
+
 @dataclass
 class Output:
     """
@@ -19,7 +20,7 @@ class Output:
         :param method: The method to get the vector for.
         """
         return self.vector[self.methods.index(method)]
-    
+
     def get_evidence(self, method: str) -> List[Evidence]:
         """
         Returns the evidence of the given method.
@@ -27,19 +28,21 @@ class Output:
         """
         return self.evidence[self.methods.index(method)]
 
+
 class Vectorizer:
     """
     Class which takes the output cases from 
     multiple flows and combines them into a vector format 
     that matches the database schema.
-    
+
     :param flow_weighting: A dictionary of flow names and their weighting.
     """
+
     def __init__(self, flow_weighting: dict[str, float] = None) -> None:
         self.flow_weighting = flow_weighting
         self.db = connect_db()
         print("Connected to results database.")
-    
+
     @staticmethod
     def match_cases(cases: List[Document]) -> Dict[str, List[Document]]:
         """
@@ -54,7 +57,7 @@ class Vectorizer:
             else:
                 matches[c.filename].append(c)
         return matches
-    
+
     def apply_weighting(self, cases: List[Document]) -> List[Document]:
         """
         Apply the weighting to the case confidence.
@@ -70,7 +73,7 @@ class Vectorizer:
             new_case.add_dict(weighted_dict)
             new_cases.append(new_case)
         return new_cases
-    
+
     def identify_methods(self, cases: List[Document]) -> List[str]:
         """
         Identifies the methods used in the cases.
@@ -82,7 +85,7 @@ class Vectorizer:
     def combine_and_store(self, cases: List[Document]) -> None:
         """
         Combines cases from multiple flows and stores them in the database.
-        
+
         :param cases: The cases to combine.
         """
         matched_cases = Vectorizer.match_cases(cases)
@@ -98,7 +101,7 @@ class Vectorizer:
     def get_key_list(cases: List[Document]) -> Set[str]:
         """
         Returns a list of keys for the given cases.
-        
+
         :param cases: The cases to get the keys for.
         """
         keys = []
@@ -116,7 +119,8 @@ class Vectorizer:
         :param key: The key to get the methods and vectors for.
         :param value: The value to get the methods and vectors for.
         """
-        local_methods = [case.method for case in case_group if key in case.to_dict()]
+        local_methods = [
+            case.method for case in case_group if key in case.to_dict()]
         methods = [m for m in self.methods if m in local_methods]
         vectors = [0 for _ in range(len(methods))]
         evidence = ["" for _ in range(len(methods))]
@@ -133,8 +137,8 @@ class Vectorizer:
                     evidence[idx] = variable_value.evidence
                 else:
                     vectors[idx] = 0
-                    evidence[idx] = Evidence.no_match()
-            elif isinstance(variable_value, list):        
+                    evidence[idx] = Evidence.abstain()
+            elif isinstance(variable_value, list):
                 for f in variable_value:
                     if f.value == value:
                         vectors[idx] = f.confidence
@@ -142,7 +146,7 @@ class Vectorizer:
                         break
                 if not evidence[idx]:
                     vectors[idx] = 0
-                    evidence[idx] = Evidence.no_match()
+                    evidence[idx] = Evidence.abstain()
         return vectors, evidence, methods
 
     @staticmethod
@@ -176,7 +180,9 @@ class Vectorizer:
         for key in Vectorizer.get_key_list(case_group):
             output_values = {}
             for value in Vectorizer.get_value_list(case_group, key):
-                vector, evidence, methods = self.get_output_value(case_group, key, value)
-                output_values[value] = asdict(Output(methods, vector, evidence))
+                vector, evidence, methods = self.get_output_value(
+                    case_group, key, value)
+                output_values[value] = asdict(
+                    Output(methods, vector, evidence))
             outputs[key] = output_values
         return outputs

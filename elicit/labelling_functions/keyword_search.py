@@ -36,8 +36,10 @@ def exact_match_single(doc: str, keywords: Dict[str, List[str]]) -> List[Documen
             exact_matches[match] += [(span.text, start, end)]
     casefields = []
     for match in exact_matches.keys():
-        casefields.append(DocumentField(value=match, confidence=1.0, evidence=Evidence.from_spacy_multiple(doc, exact_matches[match])))
+        casefields.append(DocumentField(value=match, confidence=1.0,
+                          evidence=Evidence.from_spacy_multiple(doc, exact_matches[match])))
     return casefields
+
 
 @labelling_function(labelling_method="Keyword Match", required_schemas=["keyword_schema", "categories_schema"])
 def exact_match(doc: str, document: Document, keyword_schema: Path, categories_schema: Path) -> Document:
@@ -59,8 +61,7 @@ def exact_match(doc: str, document: Document, keyword_schema: Path, categories_s
             setattr(document, field, match)
         else:
             default_category = categories[field][-1]
-            cf = DocumentField(value=default_category, confidence=0, evidence=Evidence.no_match())
+            cf = DocumentField(value=default_category,
+                               confidence=0, evidence=Evidence.abstain())
             setattr(document, field, cf)
     return document
-        
-        

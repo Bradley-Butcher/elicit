@@ -111,7 +111,7 @@ def search(
             s_start, s_end = get_sentence_start_end(doc, matched_sentence)
             cf = DocumentField(value=matched_level, confidence=matched_score, evidence=Evidence.from_character_startend(doc, s_start, s_end))
         else:
-            cf = DocumentField(value=categories[k][-1], confidence=0, evidence=Evidence.no_match())
+            cf = DocumentField(value=categories[k][-1], confidence=0, evidence=Evidence.abstain())
         document.add_field(k, cf)
     return document
             
