@@ -15,6 +15,13 @@ class Evidence:
     local_context: str
     wider_context: str
 
+    @staticmethod
+    def sanitize(string: str) -> str:
+        """
+        Sanitize the string.
+        """
+        return string.strip().replace("\n", " ").replace("\t", " ").replace("'", "").replace("\"", "").replace('"', "")
+
     @classmethod
     def no_match(cls) -> "Evidence":
         """Returns an evidence object with no match."""
@@ -31,6 +38,9 @@ class Evidence:
         exact_context = context_from_doc_char(doc, start, end, padding=0)
         local_context = context_from_doc_char(doc, start, end, local_padding)
         wider_context = context_from_doc_char(doc, start, end, wider_padding)
+        exact_context = cls.sanitize(exact_context)
+        local_context = cls.sanitize(local_context)
+        wider_context = cls.sanitize(wider_context)
         return cls(exact_context, local_context, wider_context)
     
     @classmethod
@@ -42,6 +52,9 @@ class Evidence:
         exact_context = string[max(0, mid - (exact_chars // 2)):min(len(string), mid + (exact_chars // 2))]
         local_context = string[max(0, mid - (exact_chars + local_padding // 2)):min(len(string), mid + (exact_chars + local_padding // 2))]
         wider_context = string[max(0, mid - (exact_chars + wider_padding // 2)):min(len(string), mid + (exact_chars + wider_padding // 2))]
+        exact_context = cls.sanitize(exact_context)
+        local_context = cls.sanitize(local_context)
+        wider_context = cls.sanitize(wider_context)
         return cls(exact_context, local_context, wider_context)
 
     
@@ -57,6 +70,9 @@ class Evidence:
         wider_start = max(0, start - wider_padding)
         wider_end = min(len(doc), end + wider_padding)
         wider_context = doc[wider_start:wider_end]
+        exact_context = cls.sanitize(exact_context.text)
+        local_context = cls.sanitize(local_context.text)
+        wider_context = cls.sanitize(wider_context.text)
         return cls(exact_context.text, local_context.text, wider_context.text)
     
     @classmethod
@@ -68,6 +84,8 @@ class Evidence:
             end = min(len(doc), end + wider_padding)
             widers.append(doc[start:end].text)
         wider_context = " | ".join(widers)
+        local_context = cls.sanitize(local_context)
+        wider_context = cls.sanitize(wider_context)
         return cls(local_context, local_context, wider_context)
 
 class DocumentField:

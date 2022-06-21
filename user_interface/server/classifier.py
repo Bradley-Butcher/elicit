@@ -17,10 +17,16 @@ def dfs_to_data(variable_df, extraction_df, encoder):
         return variable_df[variable_df.variable_id == variable_id][column].values[0]
     X = extraction_df.pivot(index='variable_id', columns='method', values='confidence').reset_index(level=0)
     var_values = X.variable_id.apply(lambda x: _get_response(x, "variable_value"))
-    # X = pd.concat([X, pd.DataFrame(encoder.transform(var_values.values.reshape(-1, 1)).toarray(), dtype=int)], axis=1)
+    X = pd.concat([X, pd.DataFrame(encoder.transform(var_values.values.reshape(-1, 1)).toarray(), dtype=int)], axis=1)
     # convert all to floats or ints
     X = X.apply(pd.to_numeric, errors='ignore')
-    y = X.variable_id.apply(lambda x: 1 if _get_response(x, "human_response") == "correct" else 0)
+    y = X.variable_id.apply(lambda x: _get_response(x, "human_response"))
+    X = X[~y.isnull()]
+    y = y[~y.isnull()]
+    X = X[y != "null"]
+    y = y[y != "null"]
+    y = y.map({'correct': 1, 'unknown': 0, 'incorrect': 0})
+    X = X.fillna(0)
     return X.values, y.values
 
 def build_data(variables: List[Dict[str, Union[str, float, int]]], extractions: List[Dict[str, Union[str, float, int]]]) -> Tuple[List[float], int]:
@@ -55,7 +61,10 @@ def get_confidence(variables: List[Dict[str, Union[str, float, int]]], extractio
             continue
         X_train, y_train, X = build_data(local_variables, local_extractions)
         clf = LogisticRegression()
-        clf.fit(np.nan_to_num(X_train[:, 1:], 0), y_train)
+        try:
+            clf.fit(np.nan_to_num(X_train[:, 1:], 0), y_train)
+        except ValueError:
+            continue
         for i, val in zip(X[:, 0], clf.predict_proba(np.nan_to_num(X[:, 1:], 0))[:, 1]):
             values[indicies.index(i)] = val
     return indicies, values

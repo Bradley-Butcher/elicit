@@ -13,6 +13,9 @@ from elicit.document import Document
 from elicit.vectorizer import Vectorizer
 from elicit.utils.loading import load_document
 
+from database.db_utils import doc_in_table
+
+
 from tqdm import tqdm
 
 def labelling_function(
@@ -52,10 +55,14 @@ class Pipeline:
     def register_function(self, function: Callable, function_kwargs: dict = {}) -> None:
         self.functions.append(functools.partial(function, **function_kwargs))
     
-    def run(self, documents: List[Path]) -> None:
+    def run(self, documents: List[Path], update: bool = False) -> None:
         vectorizer = Vectorizer(flow_weighting=self.flow_weighting)
         pbar = tqdm(documents)
         for doc in pbar:
+            if not update:
+                if doc_in_table(vectorizer.db, doc.stem):
+                    pbar.set_description(f"Skipping {doc.stem} - already in database.")
+                    continue
             text = load_document(doc)
             cases = []
             for function in self.functions:

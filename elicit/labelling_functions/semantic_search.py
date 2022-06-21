@@ -6,7 +6,7 @@ from elicit.document import Document, DocumentField, Evidence
 from elicit.utils.loading import load_schema
 from elicit.pipeline import labelling_function
 
-model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1')
+model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1', device="cuda")
 
 def sentence_similarities(queries: list[str], sentences: list[str], k: int = 5) -> dict[str, float]:
     """

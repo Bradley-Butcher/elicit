@@ -11,9 +11,6 @@ from elicit.utils.loading import load_schema
 warnings.filterwarnings("ignore")
 
 model_path = Path(__file__).parent.parent.parent / "models"
-model = AutoModelForQuestionAnswering.from_pretrained(
-    str(model_path.resolve()))
-tokenizer = AutoTokenizer.from_pretrained("deepset/roberta-base-squad2")
 
 
 def _flatten_answers(answers: Union[List[Dict], List[List[Dict]]]) -> List[Dict]:
@@ -43,6 +40,20 @@ def _filter_candidates(answers: List[dict], threshold: float = 0.5) -> str:
     return [(a["answer"], a["score"], a["start"], a["end"]) for a in answers if a["score"] > threshold]
 
 
+def split_question(question: str, context: str, max_length: int = 512) -> Tuple[List[dict[str, str]], int]:
+    if len(context) < max_length:
+        return {"question": question, "context": context}, 1
+    else:
+        contexts = []
+        while len(context) > max_length:
+            idx = max(context[:max_length].rfind(i) for i in [".", "\n"])
+            if idx == -1:
+                idx = max_length
+            contexts.append(context[:idx])
+            context = context[idx:]
+        contexts.append(context)
+        return [{"question": question, "context": c} for c in contexts], len(contexts)
+
 def extract_answers(doc: str, case: Document, question_schema: Path, topk: int = 5, threshold: float = 0.3) -> Dict[str, Tuple[str, float, int, int]]:
     """
     Extract answers from a document using a Q&A Transformer model.
@@ -56,8 +67,7 @@ def extract_answers(doc: str, case: Document, question_schema: Path, topk: int =
     :return: Dictionary of answers.
     """
     questions = load_schema(question_schema)
-    nlp = pipeline('question-answering',
-                   model=model, tokenizer=tokenizer, device=0)
+    nlp = pipeline('question-answering', model="deepset/roberta-base-squad2", tokenizer="deepset/roberta-base-squad2", device=0)
     answers = {}
     question_input = []
     for k in questions.keys():
@@ -69,11 +79,13 @@ def extract_answers(doc: str, case: Document, question_schema: Path, topk: int =
                     q = q.replace("<" + sub_key + ">", sub_key)
                 else:
                     q = q.replace("<" + sub_key + ">", getattr(case, sub_key).value)
-            question_input.append({"question": q, "context": doc})
+            qs, splits = split_question(question=q, context=doc)
+            question_input.extend(qs)
+            # question_input.append({"question": q, "context": doc})
     res = nlp(question_input, top_k=topk)
     index = 0
     for k in questions.keys():
         answers[k] = _filter_candidates(
-            res[index:index+len(questions[k])], threshold=threshold)
-        index += len(questions[k])
+            res[index:index+(len(questions[k]) * splits)], threshold=threshold)
+        index += len(questions[k]) * splits
     return answers
