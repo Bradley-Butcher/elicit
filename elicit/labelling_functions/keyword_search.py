@@ -8,6 +8,7 @@ from spacy.matcher import PhraseMatcher
 from elicit.document import Document, DocumentField, Evidence
 from elicit.utils.loading import load_schema
 from elicit.pipeline import labelling_function
+from elicit.interface import CategoricalLabellingFunction
 
 
 def exact_match_single(doc: str, keywords: Dict[str, List[str]]) -> List[DocumentField]:
@@ -41,7 +42,6 @@ def exact_match_single(doc: str, keywords: Dict[str, List[str]]) -> List[Documen
     return casefields
 
 
-@labelling_function(labelling_method="Keyword Match", required_schemas=["keyword_schema", "categories_schema"])
 def exact_match(doc: str, document: Document, keyword_schema: Path, categories_schema: Path) -> Document:
     """
     Match the keywords in the document with the keywords in the keywords file.
@@ -65,3 +65,23 @@ def exact_match(doc: str, document: Document, keyword_schema: Path, categories_s
                                confidence=0, evidence=Evidence.abstain())
             setattr(document, field, cf)
     return document
+
+
+class KeywordMatchLF(CategoricalLabellingFunction):
+    """
+    Labelling function which searches for keywords (from a schema) in a document.
+    """
+
+    def __init__(self, schemas: dict):
+        super.__init__(schemas)
+
+    def extract(self, doc: str) -> str:
+        return exact_match(doc, self.document,
+                           self.schemas["keywords"], self.schemas["categories"])
+
+    @property
+    def labelling_method(self):
+        return "Keyword Match"
+
+    def train(self, doc: str, extraction: str, value: str):
+        pass
