@@ -1,6 +1,6 @@
 """Script which merges multiple cases and stores them in a database."""
 from typing import Dict, List, Set, Tuple
-from elicit.document import Document, DocumentField, Evidence
+from elicit.document import Document, DocumentField, Extraction
 from dataclasses import asdict, dataclass
 from database.db_utils import connect_db, insert_doc_from_dict
 
@@ -12,7 +12,7 @@ class Output:
     """
     methods: List[str]
     vector: List[float]
-    evidence: List[Evidence]
+    evidence: List[Extraction]
 
     def get_vector(self, method: str) -> List[float]:
         """
@@ -21,7 +21,7 @@ class Output:
         """
         return self.vector[self.methods.index(method)]
 
-    def get_evidence(self, method: str) -> List[Evidence]:
+    def get_evidence(self, method: str) -> List[Extraction]:
         """
         Returns the evidence of the given method.
         :param method: The method to get the evidence for.
@@ -109,7 +109,7 @@ class Vectorizer:
             keys = keys + [str(k) for k in c.to_dict().keys()]
         return set(keys)
 
-    def get_output_value(self, case_group: List[str], key: str, value: str) -> Tuple[List[float], Evidence, List[str]]:
+    def get_output_value(self, case_group: List[str], key: str, value: str) -> Tuple[List[float], Extraction, List[str]]:
         """
         Returns a list of methods, evidence, and vectors for a list of cases.
         These cases are actually single case, but produced by multiple flows. 
@@ -137,7 +137,7 @@ class Vectorizer:
                     evidence[idx] = variable_value.evidence
                 else:
                     vectors[idx] = 0
-                    evidence[idx] = Evidence.abstain()
+                    evidence[idx] = Extraction.abstain()
             elif isinstance(variable_value, list):
                 for f in variable_value:
                     if f.value == value:
@@ -146,7 +146,7 @@ class Vectorizer:
                         break
                 if not evidence[idx]:
                     vectors[idx] = 0
-                    evidence[idx] = Evidence.abstain()
+                    evidence[idx] = Extraction.abstain()
         return vectors, evidence, methods
 
     @staticmethod

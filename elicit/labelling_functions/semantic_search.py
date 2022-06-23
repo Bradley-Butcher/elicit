@@ -2,9 +2,9 @@
 from pathlib import Path
 from sentence_transformers import SentenceTransformer, util
 
-from elicit.document import Document, DocumentField, Evidence
+from elicit.document import Document, DocumentField, Extraction
 from elicit.utils.loading import load_schema
-from elicit.pipeline import labelling_function
+from elicit.controller import labelling_function
 
 model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1', device="cuda")
 
@@ -109,9 +109,9 @@ def search(
         matched_level, matched_sentence, matched_score = match_levels(doc_sims, categories[k], threshold)
         if matched_level:
             s_start, s_end = get_sentence_start_end(doc, matched_sentence)
-            cf = DocumentField(value=matched_level, confidence=matched_score, evidence=Evidence.from_character_startend(doc, s_start, s_end))
+            cf = DocumentField(value=matched_level, confidence=matched_score, evidence=Extraction.from_character_startend(doc, s_start, s_end))
         else:
-            cf = DocumentField(value=categories[k][-1], confidence=0, evidence=Evidence.abstain())
+            cf = DocumentField(value=categories[k][-1], confidence=0, evidence=Extraction.abstain())
         document.add_field(k, cf)
     return document
             

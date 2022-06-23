@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 import re
 
-from elicit.document import Document, DocumentField, Evidence
+from elicit.document import Document, DocumentField, Extraction
 
 
 def _flatten(l: List[List[str]]) -> List[str]:
@@ -77,5 +77,6 @@ def get_defendants(filename: Path, doc: str, case: Document) -> Document:
     result = extract_defendants_filename(filename.stem)
     if not result:
         result = extract_defendants_regex(doc)
-    case.defendants =  DocumentField(value=result[0], confidence=1.0, evidence=Evidence(exact_context=str(filename.stem), local_context=str(filename.name), wider_context=str(filename.name)))
+    case.defendants = DocumentField(value=result[0], confidence=1.0, evidence=Extraction(
+        exact_context=str(filename.stem), local_context=str(filename.name), wider_context=str(filename.name)))
     return case

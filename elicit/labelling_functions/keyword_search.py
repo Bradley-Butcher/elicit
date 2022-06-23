@@ -1,17 +1,15 @@
 """Script which searches for keywords (from a schema) in a document."""
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import spacy
 from spacy.matcher import PhraseMatcher
 
-from elicit.document import Document, DocumentField, Evidence
-from elicit.utils.loading import load_schema
-from elicit.pipeline import labelling_function
-from elicit.interface import CategoricalLabellingFunction
+from elicit.controller import labelling_function
+from elicit.interface import CategoricalLabellingFunction, Extraction
 
 
-def exact_match_single(doc: str, keywords: Dict[str, List[str]]) -> List[DocumentField]:
+def exact_match(doc: str, keywords: Dict[str, List[str]]) -> List[Tuple[str, Extraction]]:
     """
     Extracts the keywords from the document for a single field.
 
@@ -35,36 +33,11 @@ def exact_match_single(doc: str, keywords: Dict[str, List[str]]) -> List[Documen
             exact_matches[match] = [(span.text, start, end)]
         else:
             exact_matches[match] += [(span.text, start, end)]
-    casefields = []
+    extractions = []
     for match in exact_matches.keys():
-        casefields.append(DocumentField(value=match, confidence=1.0,
-                          evidence=Evidence.from_spacy_multiple(doc, exact_matches[match])))
-    return casefields
-
-
-def exact_match(doc: str, document: Document, keyword_schema: Path, categories_schema: Path) -> Document:
-    """
-    Match the keywords in the document with the keywords in the keywords file.
-
-    :param doc: The document to extract the keywords from.
-    :param case: The case to add the keywords to.
-    :param keyword_path: The path to the keywords file.
-    :param categories_path: The path to the categories file.
-
-    :return: The case with the keywords added.
-    """
-    field_keywords = load_schema(keyword_schema)
-    categories = load_schema(categories_schema)
-    for field in field_keywords.keys():
-        match = exact_match_single(doc, field_keywords[field])
-        if match:
-            setattr(document, field, match)
-        else:
-            default_category = categories[field][-1]
-            cf = DocumentField(value=default_category,
-                               confidence=0, evidence=Evidence.abstain())
-            setattr(document, field, cf)
-    return document
+        extractions.append(Extraction.from_spacy_multiple(
+            doc=doc, value=match, confidence=1.0, evidence_list=exact_matches[match]))
+    return extractions
 
 
 class KeywordMatchLF(CategoricalLabellingFunction):
@@ -72,16 +45,22 @@ class KeywordMatchLF(CategoricalLabellingFunction):
     Labelling function which searches for keywords (from a schema) in a document.
     """
 
-    def __init__(self, schemas: dict):
-        super.__init__(schemas)
+    def __init__(self, schemas: dict[str, Path], db_path: Path):
+        super.__init__(schemas, db_path)
 
-    def extract(self, doc: str) -> str:
-        return exact_match(doc, self.document,
-                           self.schemas["keywords"], self.schemas["categories"])
+    def extract(self, document_name: str, variable_name: str, document_text: str) -> str:
+        matches = exact_match(
+            document_text,
+            self.document,
+            self.get_schema("keyword", variable_name),
+            self.get_schema("categories", variable_name))
+        for match in matches:
+            self.push(document_name, variable_name,
+                      match.value, match.evidence)
 
     @property
     def labelling_method(self):
         return "Keyword Match"
 
-    def train(self, doc: str, extraction: str, value: str):
+    def train(self, doc: str, extraction: Extraction):
         pass

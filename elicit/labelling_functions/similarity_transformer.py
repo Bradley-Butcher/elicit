@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Union
 import warnings
 
-from elicit.document import Document, DocumentField, Evidence
+from elicit.document import Document, DocumentField, Extraction
 
 from elicit.labelling_functions.qa_transformer import extract_answers
 from elicit.labelling_functions.nli_transformer import compress
@@ -47,24 +47,24 @@ def match_similarity(answers: List[Tuple[str, float]], doc: str, levels: List[st
     :return: List of CaseFields.
     """
     if not answers:
-        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.abstain())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Extraction.abstain())
     candidates = []
     for answer, score, start, end in answers:
         output = similarity(answer, [*levels, ""])
         candidates += [(o, s * score, start, end)
                        for o, s in output if s > threshold]
     if not candidates:
-        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.abstain())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Extraction.abstain())
     compressed_candidates, context = compress(candidates)
     max_candidate = max(compressed_candidates, key=compressed_candidates.get)
     output = DocumentField(
         value=max_candidate,
         confidence=compressed_candidates[max_candidate],
-        evidence=Evidence.from_character_startend(
+        evidence=Extraction.from_character_startend(
             doc, context[max_candidate]["start"], context[max_candidate]["end"])
     )
     if output.value == "":
-        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.abstain())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Extraction.abstain())
     return output
 
 

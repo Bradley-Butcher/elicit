@@ -7,14 +7,15 @@ from elicit.labelling_functions.similarity_transformer import sim_extraction
 from elicit.labelling_functions.semantic_search import search
 from elicit.labelling_functions.mask_transformer import mask_extraction
 
-from elicit.pipeline import Pipeline
+from elicit.controller import Controller
+
 
 def core_pipeline(
     docs: List[Path],
     question_schema: Path,
     categories_schema: Path,
     keyword_schema: Path,
-    ):
+):
     """
     Core pipeline showing how to use the pipeline.
 
@@ -23,12 +24,15 @@ def core_pipeline(
     :param categories_schema: The categories schema.
     :param keyword_schema: The keyword schema.
     """
-    pipeline = Pipeline()
+    pipeline = Controller()
 
     # Register schemas
-    pipeline.register_schema(schema=question_schema, schema_name="question_schema")
-    pipeline.register_schema(schema=categories_schema, schema_name="categories_schema")
-    pipeline.register_schema(schema=keyword_schema, schema_name="keyword_schema")
+    pipeline.register_schema(schema=question_schema,
+                             schema_name="question_schema")
+    pipeline.register_schema(schema=categories_schema,
+                             schema_name="categories_schema")
+    pipeline.register_schema(schema=keyword_schema,
+                             schema_name="keyword_schema")
     # pipeline.register_schema(schema=mask_schema, schema_name="mask_schema")
 
     # Register functions

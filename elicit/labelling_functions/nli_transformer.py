@@ -6,11 +6,11 @@ from typing import DefaultDict, Dict, List, Tuple, Union
 import re
 import warnings
 
-from elicit.document import Document, DocumentField, Evidence
+from elicit.document import Document, DocumentField, Extraction
 
 from elicit.labelling_functions.qa_transformer import extract_answers
 from elicit.utils.loading import load_schema
-from elicit.pipeline import labelling_function
+from elicit.controller import labelling_function
 
 
 warnings.filterwarnings("ignore")
@@ -32,9 +32,9 @@ def extract_value(answers: List[Tuple[str, float, int, int]], doc: str, threshol
     values = [(re.findall(r'\d+', answer)[0], score, start, end)
               for answer, score, start, end in answers if score > threshold and re.findall(r'\d+', answer)]
     if not values:
-        return DocumentField(value="unknown", confidence=0, evidence=Evidence.abstain())
+        return DocumentField(value="unknown", confidence=0, evidence=Extraction.abstain())
     values, context = compress(values)
-    output = [DocumentField(value=k, confidence=v, evidence=Evidence.from_character_startend(
+    output = [DocumentField(value=k, confidence=v, evidence=Extraction.from_character_startend(
         doc, context[k]["start"], context[k]["end"])) for k, v in values.items()]
     if len(output) == 1:
         return output[0]
@@ -76,7 +76,7 @@ def match_classify(answers: List[Tuple[str, float]], doc: str, levels: List[str]
     :return: Tuple of the matched level and the confidence of the match.
     """
     if not answers:
-        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.abstain())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Extraction.abstain())
     candidates = []
     for answer, score, start, end in answers:
         if answer in levels:
@@ -86,17 +86,17 @@ def match_classify(answers: List[Tuple[str, float]], doc: str, levels: List[str]
             candidates += [(output["labels"][i], output["scores"][i] * score, start, end)
                            for i in range(len(output["labels"])) if output["scores"][i] > threshold]
     if not candidates:
-        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.abstain())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Extraction.abstain())
     compressed_candidates, context = compress(candidates)
     max_candidate = max(compressed_candidates, key=compressed_candidates.get)
     output = DocumentField(
         value=max_candidate,
         confidence=compressed_candidates[max_candidate],
-        evidence=Evidence.from_character_startend(
+        evidence=Extraction.from_character_startend(
             doc, context[max_candidate]["start"], context[max_candidate]["end"])
     )
     if output.value == "":
-        return DocumentField(value=levels[-1], confidence=0, evidence=Evidence.abstain())
+        return DocumentField(value=levels[-1], confidence=0, evidence=Extraction.abstain())
     return output
 
 
@@ -110,9 +110,9 @@ def extract_top(answers: List[Tuple[str, float, int, int]], doc: str) -> List[Do
     :return: List of CaseField objects with the extracted values.
     """
     if not answers:
-        return DocumentField(value="unknown", confidence=0, evidence=Evidence.abstain())
+        return DocumentField(value="unknown", confidence=0, evidence=Extraction.abstain())
     answers, context = compress(answers)
-    return [DocumentField(value=k, confidence=v, evidence=Evidence.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in answers.items()]
+    return [DocumentField(value=k, confidence=v, evidence=Extraction.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in answers.items()]
 
 
 def process_answers(answers: Dict[str, Tuple[str, float, int, int]], doc: str, categories_schema: Path, threshold: float = 0.7) -> Dict[str, List[str]]:

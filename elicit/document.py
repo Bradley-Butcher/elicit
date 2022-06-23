@@ -8,13 +8,14 @@ from elicit.utils import context_from_doc_char
 
 
 @dataclass
-class Evidence:
+class Extraction:
     """
     Class for storing evidence.
     """
     exact_context: str
     local_context: str
     wider_context: str
+    confidence: float
 
     @staticmethod
     def sanitize(string: str) -> str:
@@ -24,14 +25,24 @@ class Evidence:
         return string.strip().replace("\n", " ").replace("\t", " ").replace("'", "").replace("\"", "").replace('"', "")
 
     @classmethod
-    def abstain(cls) -> "Evidence":
+    def abstain(cls, confidence: float = 0) -> "Extraction":
         """Abstains, providing no evidence"""
-        return cls("ABSTAIN", None, None)
+        return cls("ABSTAIN", None, None, confidence)
 
     @classmethod
-    def from_character_startend(cls, doc: str, start: int, end: int, local_padding: int = 100, wider_padding: int = 500, max_chars: int = 100) -> "Evidence":
+    def from_character_startend(cls, doc: str, confidence: float, start: int, end: int, local_padding: int = 100, wider_padding: int = 500, max_chars: int = 100) -> "Extraction":
         """
         Returns an evidence object from a character start and end index.
+
+        :param doc: The document.
+        :param confidence: The confidence of the extraction.
+        :param start: The start index.
+        :param end: The end index.
+        :param local_padding: The padding for the local context.
+        :param wider_padding: The padding for the wider context.
+        :param max_chars: The maximum number of characters to extract.
+
+        :return: An Extraction object.
         """
         mid = (start + end) // 2
         start = int(max(start, mid - (max_chars / 2)))
@@ -42,12 +53,20 @@ class Evidence:
         exact_context = cls.sanitize(exact_context)
         local_context = cls.sanitize(local_context)
         wider_context = cls.sanitize(wider_context)
-        return cls(exact_context, local_context, wider_context)
+        return cls(exact_context, local_context, wider_context, confidence)
 
     @classmethod
-    def from_string(cls, string: str, exact_chars: int = 100, local_padding: int = 100, wider_padding: int = 500) -> "Evidence":
+    def from_string(cls, string: str, confidence: float, exact_chars: int = 100, local_padding: int = 100, wider_padding: int = 500) -> "Extraction":
         """
         Returns an evidence object from a string.
+
+        :param string: The string to extract from.
+        :param confidence: The confidence of the extraction.
+        :param exact_chars: The number of characters to use for the exact context.
+        :param local_padding: The number of characters to use for the local context.
+        :param wider_padding: The number of characters to use for the wider context.
+
+        :return: An Extraction object.
         """
         mid = len(string) // 2
         exact_context = string[max(
@@ -59,12 +78,20 @@ class Evidence:
         exact_context = cls.sanitize(exact_context)
         local_context = cls.sanitize(local_context)
         wider_context = cls.sanitize(wider_context)
-        return cls(exact_context, local_context, wider_context)
+        return cls(exact_context, local_context, wider_context, confidence)
 
     @classmethod
-    def from_spacy(cls, doc: Language, start: int, end: int, local_padding: int = 0, wider_padding: int = 10) -> "Evidence":
+    def from_spacy(cls, doc: Language, confidence: float, start: int, end: int, local_padding: int = 0, wider_padding: int = 10) -> "Extraction":
         """
         Returns an evidence object from a character start and end index.
+
+        :param doc: The document.
+        :param start: The start index.
+        :param end: The end index.
+        :param local_padding: The padding for the local context.
+        :param wider_padding: The padding for the wider context.
+
+        :return: An Extraction object.
         """
         exact_context = doc[start:end]
         local_start = max(0, start - local_padding)
@@ -76,10 +103,19 @@ class Evidence:
         exact_context = cls.sanitize(exact_context.text)
         local_context = cls.sanitize(local_context.text)
         wider_context = cls.sanitize(wider_context.text)
-        return cls(exact_context, local_context, wider_context)
+        return cls(exact_context, local_context, wider_context, confidence)
 
     @classmethod
-    def from_spacy_multiple(cls, doc: Language, evidence_list: List[Tuple[str, int, int]], wider_padding: int = 20) -> "Evidence":
+    def from_spacy_multiple(cls, doc: Language, confidence: float, evidence_list: List[Tuple[str, int, int]], wider_padding: int = 20) -> "Extraction":
+        """
+        Returns an evidence object from a character start and end index.
+
+        :param doc: The document.
+        :param evidence_list: A list of evidence.
+        :param wider_padding: The padding for the wider context.
+
+        :return: An Extraction object.
+        """
         local_context = ", ".join([span for span, _, _ in evidence_list])
         widers = []
         for span, start, end in evidence_list:
@@ -89,7 +125,7 @@ class Evidence:
         wider_context = " | ".join(widers)
         local_context = cls.sanitize(local_context)
         wider_context = cls.sanitize(wider_context)
-        return cls(local_context, local_context, wider_context)
+        return cls(local_context, local_context, wider_context, confidence)
 
 
 class DocumentField:
@@ -101,7 +137,7 @@ class DocumentField:
     :param evidence: The evidence for the value.
     """
 
-    def __init__(self, value: str, confidence: float, evidence: Evidence):
+    def __init__(self, value: str, confidence: float, evidence: Extraction):
         self.value = value
         self.confidence = confidence
         self.evidence = evidence
@@ -199,10 +235,10 @@ class Document:
         for key, value in kwargs.items():
             if isinstance(value, list) or isinstance(value, set):
                 kwargs[key] = [DocumentField(
-                    value=v, confidence=1, evidence=Evidence.abstain()) for v in value]
+                    value=v, confidence=1, evidence=Extraction.abstain()) for v in value]
             else:
                 kwargs[key] = DocumentField(
-                    value=value, confidence=1, evidence=Evidence.abstain())
+                    value=value, confidence=1, evidence=Extraction.abstain())
         return cls(filename=filename, method="manual", **kwargs)
 
     def to_dict(self):

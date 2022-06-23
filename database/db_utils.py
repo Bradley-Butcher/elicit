@@ -7,6 +7,7 @@ from typing import List
 db_path = Path(__file__).parent / "db.sqlite"
 schema_path = Path(__file__).parent / "db_schema.sql"
 
+
 def connect_db(db_path: Path = db_path) -> sqlite3.Connection:
     """
     Connect to the database. Build the tables if they don't exist.
@@ -20,6 +21,7 @@ def connect_db(db_path: Path = db_path) -> sqlite3.Connection:
         build_tables(db, schema_path)
         return db
     return sqlite3.connect(db_path, check_same_thread=False)
+
 
 def query_db(db, query, args=(), one=False) -> list:
     """
@@ -37,6 +39,7 @@ def query_db(db, query, args=(), one=False) -> list:
     cur.close()
     return (rv[0] if rv else None) if one else rv
 
+
 def build_tables(db, sql_file: Path) -> None:
     """
     Build the tables.
@@ -52,6 +55,7 @@ def build_tables(db, sql_file: Path) -> None:
         db.executescript(f.read())
         db.commit()
 
+
 def get_next_id(db, table: str) -> int:
     """
     Get the next ID.
@@ -65,6 +69,7 @@ def get_next_id(db, table: str) -> int:
     val = query_db(db, query)[0][0]
     return val + 1 if val is not None else 0
 
+
 def doc_in_table(db, doc_name: str) -> bool:
     """
     Check if a document is in the database.
@@ -77,6 +82,7 @@ def doc_in_table(db, doc_name: str) -> bool:
     query = f"SELECT document_id FROM document WHERE document_name = '{doc_name}' LIMIT 1"
     return True if query_db(db, query) else False
 
+
 def get_variables_for_doc(db, doc_id: int, values: List[str]) -> list:
     """
     Get the variables for a document.
@@ -88,6 +94,7 @@ def get_variables_for_doc(db, doc_id: int, values: List[str]) -> list:
     """
     query = f"SELECT {', '.join(values)} FROM variable WHERE document_id = {doc_id}"
     return query_db(db, query)
+
 
 def delete_doc(db, doc_name: str, delete_if_human_response: bool = False) -> None:
     """
@@ -103,7 +110,8 @@ def delete_doc(db, doc_name: str, delete_if_human_response: bool = False) -> Non
         query = f"DELETE FROM document WHERE document_name = '{doc_name}'"
         db.execute(query)
     doc_id = get_doc_id(db, doc_name)
-    variables = get_variables_for_doc(db, doc_id, ["variable_id", "human_response"])
+    variables = get_variables_for_doc(
+        db, doc_id, ["variable_id", "human_response"])
     deleted_vars = 0
     for var in variables:
         var_id, human_response = var
@@ -115,8 +123,8 @@ def delete_doc(db, doc_name: str, delete_if_human_response: bool = False) -> Non
         query = f"DELETE FROM document WHERE document_id = '{doc_id}'"
         db.execute(query)
     db.commit()
-    
-        
+
+
 def get_doc_id(db, doc_name: str) -> int:
     """
     Get the ID of a document.
@@ -127,8 +135,27 @@ def get_doc_id(db, doc_name: str) -> int:
     :return: ID of the document.
     """
     query = f"SELECT document_id FROM document WHERE document_name = '{doc_name}' LIMIT 1"
-    return query_db(db, query)[0][0]
+    try:
+        return int(query_db(db, query)[0][0])
+    except IndexError:
+        return -1
 
+def get_variable_id(db, var_name: str, variable_value: str, document_id: int) -> int:
+    """
+    Get the ID of a variable.
+
+    :param db: Connection to the database.
+    :param var_name: Name of the variable.
+    :param variable_value: Value of the variable.
+    :param document_id: ID of the document.
+
+    :return: ID of the variable.
+    """
+    query = f"SELECT variable_id FROM variable WHERE variable_name = '{var_name}' AND variable_value = '{variable_value}' AND document_id = '{document_id}' LIMIT 1"
+    try:
+        return int(query_db(db, query)[0][0])
+    except IndexError:
+        return -1
 
 def variable_in_table(db, var_name: str, variable_value: str, document_id: int) -> bool:
     """
@@ -151,7 +178,7 @@ def insert_new_doc(db, doc_name: str, doc_dict: dict) -> None:
         db.execute(document_query)
     except sqlite3.IntegrityError:
         next_doc_id = get_doc_id(db, doc_name)
-    #Insert Variables
+    # Insert Variables
     for var in values:
         # check if variable_name is in the database for this document
         for val in doc_dict[var].keys():
@@ -169,7 +196,9 @@ def insert_new_doc(db, doc_name: str, doc_dict: dict) -> None:
                     try:
                         db.execute(extraction_query)
                     except:
-                        print("Database error. Duplicate case? Use update method to update existing cases.")
+                        print(
+                            "Database error. Duplicate case? Use update method to update existing cases.")
+
 
 def insert_doc_from_dict(db, doc_name: str, doc_dict: dict, delete_if_human_response: bool = False) -> None:
     """
@@ -181,11 +210,12 @@ def insert_doc_from_dict(db, doc_name: str, doc_dict: dict, delete_if_human_resp
 
     :return: None
     """
-    #Insert Document
+    # Insert Document
     if doc_in_table(db, doc_name):
-        delete_doc(db, doc_name, delete_if_human_response=delete_if_human_response)
+        delete_doc(
+            db, doc_name, delete_if_human_response=delete_if_human_response)
     insert_new_doc(db, doc_name, doc_dict)
-                    
+
 
 def insert_documents_from_json(db, json_file: Path) -> None:
     """

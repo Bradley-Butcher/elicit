@@ -5,8 +5,8 @@ from typing import List
 
 from transformers import pipeline
 
-from elicit.document import Document, DocumentField, Evidence
-from elicit.pipeline import labelling_function
+from elicit.document import Document, DocumentField, Extraction
+from elicit.controller import labelling_function
 from elicit.utils.loading import load_schema
 from elicit.utils.utils import split_doc
 
@@ -52,7 +52,7 @@ def categorical_mask(doc: str, masks: List[str], levels: List[str], topk: int = 
             continue
         if masks["type"] == "direct":
             if key in levels:
-                fields += [DocumentField(key, weighted_dict[key], Evidence.from_string(evidence))]
+                fields += [DocumentField(key, weighted_dict[key], Extraction.from_string(evidence))]
     return fields
 
 def continuous_mask(doc: str, masks: List[str], topk: int = 10):
@@ -61,7 +61,7 @@ def continuous_mask(doc: str, masks: List[str], topk: int = 10):
     for key in topk_keys(weighted_dict, topk):
         evidence = evidence_dict[key].replace("[MASK]", key)
         if key.isnumeric():
-            fields += [DocumentField(key, weighted_dict[key], Evidence.from_string(evidence))]
+            fields += [DocumentField(key, weighted_dict[key], Extraction.from_string(evidence))]
     return fields
 
 def raw_mask(doc: str, masks: List[str], topk: int = 3, threshold: float = 0.3):
@@ -70,7 +70,7 @@ def raw_mask(doc: str, masks: List[str], topk: int = 3, threshold: float = 0.3):
     for key in topk_keys(weighted_dict, topk):
         evidence = evidence_dict[key].replace("[MASK]", key)
         if weighted_dict[key] > threshold:
-            fields += [DocumentField(key, weighted_dict[key], Evidence.from_string(evidence))]
+            fields += [DocumentField(key, weighted_dict[key], Extraction.from_string(evidence))]
     return fields
 
 
