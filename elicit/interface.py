@@ -1,7 +1,12 @@
-"""Abstract base class for labelling functions."""
+"""Script which contains the following interfaces:
+ - ElicitLogger, which pushes extractions to the specified database
+ - Labelling Function Abstract Classes
+ - Extraction class, a dataclass which stores abstractions.
+    also has various classmethods for easily extracting evidence.
+"""
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 from dataclasses import dataclass
 
 from spacy.language import Language
@@ -51,7 +56,18 @@ class ElicitLogger:
         """
         next_extraction_id = get_next_id(self.db, 'extraction')
         self.db.execute(
-            "INSERT INTO extraction (extraction_id, method, exact_context, local_context, wider_context, confidence, variable_id, document_id) VALUES (?, ?, ?, ?, ?, ?, ?)", (next_extraction_id, method, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, variable_id, document_id))
+            "INSERT INTO extraction (extraction_id, method, exact_context, local_context, wider_context, confidence, variable_id, document_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (next_extraction_id, method, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, variable_id, document_id))
+
+    def push_variable(self, document_name: str, variable_name: str, variable_value: str) -> None:
+        """
+        Push the given value to the database.
+        :param document_name: The name of the document.
+        :param variable_name: The name of the variable.
+        :param variable_value: The value to push.
+        """
+        doc_id = self._get_doc(document_name)
+        var_id = self._get_variable(doc_id, variable_name, variable_value)
+        self.db.commit()
 
     def push(self, document_name: str, variable_name: str, extraction: "Extraction", method: str):
         """
@@ -61,16 +77,19 @@ class ElicitLogger:
         :param value: The value to push.
         :param evidence: The evidence to push.
         """
-        doc_id = self._get_doc(self.db, document_name)
+        assert isinstance(
+            extraction, Extraction), "'extraction' must be an Extraction object."
+        doc_id = self._get_doc(document_name)
         var_id = self._get_variable(doc_id, variable_name, extraction.value)
         self._push_evidence(doc_id, var_id, extraction, method)
+        self.db.commit()
 
 
 class LabellingFunctionBase(ABC):
 
     def __init__(self, schemas: dict[str, Path], logger: ElicitLogger):
         """Initialize the labelling function."""
-        self.schemas = {k: load_schema(v) for k, v in schemas.items()}
+        self.schemas = {k: v for k, v in schemas.items()}
         self.logger = logger
 
     def get_schema(self, schema_name: str, variable: str = None) -> dict:
@@ -110,11 +129,15 @@ class LabellingFunctionBase(ABC):
         self.logger.push(document_name, variable_name,
                          extraction, self.labelling_method)
 
-    @abstractmethod
     @property
+    @abstractmethod
     def labelling_method(self):
         """Return the labelling method string."""
         pass
+
+    @property
+    def type(self):
+        return "categorical"
 
     @abstractmethod
     def train(self, document_name: str, variable_name: str, extraction: "Extraction"):
@@ -142,10 +165,14 @@ class CategoricalLabellingFunction(LabellingFunctionBase):
         """Use the labelling function to extract a label from a document."""
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def labelling_method(self):
         pass
+
+    @property
+    def type(self):
+        return "categorical"
 
 
 class NumericalLabellingFunction(LabellingFunctionBase):
@@ -163,8 +190,37 @@ class NumericalLabellingFunction(LabellingFunctionBase):
         """Use the labelling function to extract a label from a document."""
         pass
 
-    @abstractmethod
     @property
+    def type(self):
+        return "numerical"
+
+    @property
+    @abstractmethod
+    def labelling_method(self):
+        pass
+
+
+class RawLabellingFunction(LabellingFunctionBase):
+
+    def __init__(self, schemas: dict[str, Path], logger: ElicitLogger):
+        super().__init__(schemas, logger)
+
+    @abstractmethod
+    def train(self, document_name: str, variable_name: str, extraction: "Extraction"):
+        """Train the labelling function."""
+        pass
+
+    @abstractmethod
+    def extract(self, document_name: str, variable_name: str, document_text: str) -> str:
+        """Use the labelling function to extract a label from a document."""
+        pass
+
+    @property
+    def type():
+        return "raw"
+
+    @property
+    @abstractmethod
     def labelling_method(self):
         pass
 
@@ -243,7 +299,7 @@ class Extraction:
         wider_context = cls.sanitize(wider_context)
         return cls(value, exact_context, local_context, wider_context, confidence)
 
-     @classmethod
+    @classmethod
     def from_spacy(cls, doc: Language, value: str, confidence: float, start: int, end: int, local_padding: int = 0, wider_padding: int = 10) -> "Extraction":
         """
         Returns an evidence object from a character start and end index.
