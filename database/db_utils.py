@@ -140,6 +140,7 @@ def get_doc_id(db, doc_name: str) -> int:
     except IndexError:
         return -1
 
+
 def get_variable_id(db, var_name: str, variable_value: str, document_id: int) -> int:
     """
     Get the ID of a variable.
@@ -156,6 +157,26 @@ def get_variable_id(db, var_name: str, variable_value: str, document_id: int) ->
         return int(query_db(db, query)[0][0])
     except IndexError:
         return -1
+
+
+def get_extraction_id(db, extraction_method: str, var_id: int, document_id: int) -> int:
+    """
+    Get the ID of an extraction.
+
+    :param db: Connection to the database.
+    :param extraction_method: Name of the extraction method.
+    :param var_name: Name of the variable.
+    :param variable_value: Value of the variable.
+    :param document_id: ID of the document.
+
+    :return: ID of the extraction.
+    """
+    query = f"SELECT extraction_id FROM extraction WHERE method = '{extraction_method}' AND variable_id = '{var_id}' AND document_id = '{document_id}' LIMIT 1"
+    try:
+        return int(query_db(db, query)[0][0])
+    except IndexError:
+        return -1
+
 
 def variable_in_table(db, var_name: str, variable_value: str, document_id: int) -> bool:
     """

@@ -7,8 +7,8 @@ variable1:
     - kw4
 variable2:
   cat1:
-    - kw1
-    - kw2
+    - oo1
+    - oo2
   cat2:
-    - kw3
-    - kw4
+    - oo3
+    - oo4

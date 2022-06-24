@@ -1,24 +1,20 @@
 """Script which uses a Sentence Similarity transformer model to assign extracted Q&A pairs to provided categories."""
 from sentence_transformers import SentenceTransformer, util
+from transformers import pipeline
+
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 import warnings
 
-from elicit.document import Document, DocumentField, Extraction
-
+from elicit.interface import CategoricalLabellingFunction, Extraction
 from elicit.labelling_functions.qa_transformer import extract_answers
 from elicit.labelling_functions.nli_transformer import compress
-from elicit.utils.loading import load_schema
-from elicit.pipeline import labelling_function
 
 
 warnings.filterwarnings("ignore")
 
 
-model = SentenceTransformer('all-MiniLM-L6-v2', device='cuda')
-
-
-def similarity(answer: str, levels: List[str]):
+def similarity(answer: str, levels: List[str], similarity_model: SentenceTransformer):
     """
     Get the similarity score of each level to the answer.
 
@@ -29,13 +25,14 @@ def similarity(answer: str, levels: List[str]):
     """
     def _add_prefix(level: List[str]) -> str:
         return [f"this is a {l}" for l in level]
-    embeddings = model.encode(_add_prefix([answer, *levels]), device=0)
+    embeddings = similarity_model.encode(
+        _add_prefix([answer, *levels]), device=0)
     sims = [float(util.pytorch_cos_sim(embeddings[0], embeddings[i]))
             for i in range(1, len(embeddings))]
     return [(levels[i], s) for i, s in enumerate(sims)]
 
 
-def match_similarity(answers: List[Tuple[str, float]], doc: str, levels: List[str], threshold: float) -> Union[DocumentField, List[DocumentField]]:
+def match_similarity(answers: List[Tuple[str, float]], doc: str, levels: List[str], similarity_model: SentenceTransformer, filter_threshold: float, threshold: float) -> List[Extraction]:
     """
     Find closest level to an answer, must pass threshold.
 
@@ -46,78 +43,80 @@ def match_similarity(answers: List[Tuple[str, float]], doc: str, levels: List[st
 
     :return: List of CaseFields.
     """
-    if not answers:
-        return DocumentField(value=levels[-1], confidence=0, evidence=Extraction.abstain())
     candidates = []
     for answer, score, start, end in answers:
-        output = similarity(answer, [*levels, ""])
+        output = similarity(
+            answer,
+            [*levels, ""],
+            similarity_model=similarity_model
+        )
         candidates += [(o, s * score, start, end)
-                       for o, s in output if s > threshold]
+                       for o, s in output if s > filter_threshold]
     if not candidates:
-        return DocumentField(value=levels[-1], confidence=0, evidence=Extraction.abstain())
+        return [Extraction.abstain()]
     compressed_candidates, context = compress(candidates)
-    max_candidate = max(compressed_candidates, key=compressed_candidates.get)
-    output = DocumentField(
-        value=max_candidate,
-        confidence=compressed_candidates[max_candidate],
-        evidence=Extraction.from_character_startend(
-            doc, context[max_candidate]["start"], context[max_candidate]["end"])
-    )
-    if output.value == "":
-        return DocumentField(value=levels[-1], confidence=0, evidence=Extraction.abstain())
-    return output
 
+    # get all candidates that are above the threshold
+    candidates = [(o, s)
+                  for o, s in compressed_candidates.items() if s > threshold]
 
-def process_answers(answers: Dict[str, Tuple[str, float]], doc: str, categories_schema: Path, threshold: float = 0.7) -> Dict[str, List[str]]:
-    """
-    Process answers to match answers to categories.
-
-    :param answers: Dict of answers to match to categories.
-    :param doc: The document answers are extracted from - used to form evidence.
-    :param categories_schema: Path to categories schema.
-    :param threshold: Threshold for filtering.
-
-    :return: Dict of variable: CaseFields.
-    """
-    variables = load_schema(categories_schema)
-    extracted_variables = {}
-    for key in variables.keys():
-        if variables[key] == "continuous":
+    # create a list of Extraction for each candidate
+    extractions = []
+    for candidate, score in candidates:
+        if candidate == "":
             continue
-        elif variables[key] == "raw":
-            continue
-        else:
-            extracted_variables[key] = match_similarity(
-                answers[key], doc=doc, levels=variables[key], threshold=threshold)
-    return extracted_variables
+        extractions.append(Extraction.from_character_startend(
+            doc,
+            candidate,
+            score,
+            context[candidate]["start"],
+            context[candidate]["end"]
+        ))
+
+    if len(extractions) == 0:
+        return [Extraction.abstain()]
+    else:
+        return extractions
 
 
-@labelling_function(labelling_method="Similarity Transformer", required_schemas=["question_schema", "categories_schema"])
-def sim_extraction(
-    doc: str,
-    document: Document,
-    question_schema: Path,
-    categories_schema: Path,
-    match_threshold: float = 0.3,
-    qa_threshold: float = 0.5,
-) -> Document:
-    """
-    Extract variables from doc using a Sentence Similarity transformer model and a Q&A transformer model.
+class SimilarityLabellingFunction(CategoricalLabellingFunction):
+    def __init__(self, schemas, logger, **kwargs):
+        super().__init__(schemas, logger, **kwargs)
+        self.filter_threshold = 0.5
+        self.qna_threshold = 0.3
 
-    Q&A transformer (doc) -> Sentence Similarity transformer (categories) -> extracted categories.
+    def load(self) -> None:
+        self.similarity_model = SentenceTransformer(
+            'all-MiniLM-L6-v2', device='cuda')
+        self.qna_model = pipeline(
+            'question-answering',
+            model="deepset/roberta-base-squad2",
+            tokenizer="deepset/roberta-base-squad2", device=0
+        )
 
-    :param doc: The document to extract variables from.
-    :param case: The case to update.
-    :param question_schema: Path to question schema.
-    :param categories_schema: Path to categories schema.
-    :param match_threshold: Threshold for filtering the similarity transformer.
-    :param qa_threshold: Threshold for filtering the Q&A transformer answers.
+    def extract(self, document_name: str, variable_name: str, document_text: str) -> None:
+        questions = self.get_schema("questions", variable_name)
+        categories = self.get_schema("categories", variable_name)
+        final_threshold = 1 / (len(categories) + 1)
+        answers = extract_answers(
+            document_text,
+            questions=questions,
+            qna_model=self.qna_model,
+            threshold=self.qna_threshold
+        )
+        extractions = match_similarity(
+            answers,
+            doc=document_text,
+            levels=categories,
+            similarity_model=self.similarity_model,
+            filter_threshold=self.filter_threshold,
+            threshold=final_threshold
+        )
+        self.push_many(document_name, variable_name, extractions)
 
-    :return: Updated case.
-    """
-    answers = extract_answers(
-        case=document, doc=doc, question_schema=question_schema, threshold=qa_threshold)
-    answer_dict = process_answers(
-        answers=answers, doc=doc, categories_schema=categories_schema, threshold=match_threshold)
-    document.add_dict(answer_dict)
-    return document
+    def train(self, document_name: str, variable_name: str, extraction: Extraction):
+        pass
+
+    @property
+    def labelling_method(self) -> str:
+        return "Q&A → Similarity Transformer"

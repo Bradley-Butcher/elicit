@@ -5,7 +5,6 @@ from typing import Dict, List, Tuple
 import spacy
 from spacy.matcher import PhraseMatcher
 
-from elicit.controller import labelling_function
 from elicit.interface import CategoricalLabellingFunction, Extraction
 
 
@@ -45,22 +44,22 @@ class KeywordMatchLF(CategoricalLabellingFunction):
     Labelling function which searches for keywords (from a schema) in a document.
     """
 
-    def __init__(self, schemas: dict[str, Path], db_path: Path):
-        super.__init__(schemas, db_path)
+    def __init__(self, schemas, logger, **kwargs):
+        super().__init__(schemas, logger, **kwargs)
 
     def extract(self, document_name: str, variable_name: str, document_text: str) -> str:
         matches = exact_match(
             document_text,
-            self.document,
-            self.get_schema("keyword", variable_name),
-            self.get_schema("categories", variable_name))
-        for match in matches:
-            self.push(document_name, variable_name,
-                      match.value, match.evidence)
+            self.get_schema("keywords", variable_name)
+        )
+        self.push_many(document_name, variable_name, matches)
 
     @property
     def labelling_method(self):
         return "Keyword Match"
 
     def train(self, doc: str, extraction: Extraction):
+        pass
+
+    def load(self):
         pass

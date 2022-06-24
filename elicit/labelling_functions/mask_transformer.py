@@ -5,9 +5,8 @@ from typing import List
 
 from transformers import pipeline
 
-from elicit.document import Document, DocumentField, Extraction
-from elicit.controller import labelling_function
-from elicit.utils.loading import load_schema
+from elicit.interface import CategoricalLabellingFunction
+
 from elicit.utils.utils import split_doc
 
 unmasker = pipeline('fill-mask', model='bert-base-uncased')
@@ -92,6 +91,30 @@ def mask_extraction(
             cfs = categorical_mask(doc, masks[variable], categories[variable])
         document.add_fields(variable, cfs)
     return document
+
+class MaskTransformerLF(CategoricalLabellingFunction):
+    def __init__(self, schemas, logger, **kwargs):
+        super().__init__(schemas, logger, **kwargs)
+        self.sim_threshold = 0.25
+    
+    def load(self) -> None:
+        self.model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1', device="cuda")
+
+    def extract(self, document_name: str, variable_name: str, document_text: str) -> None:
+        questions = self.get_schema("questions", variable_name)
+        categories = self.get_schema("categories", variable_name)
+        doc_sims = doc_similarities(questions, document_text, self.model)
+        matched_level, matched_sentence, matched_score = match_levels(doc_sims, categories, self.model, self.sim_threshold)
+        if matched_level:
+            s_start, s_end = get_sentence_start_end(document_text, matched_sentence)
+            self.push(document_name, variable_name, Extraction.from_character_startend(document_text, matched_level, matched_score, s_start, s_end))
+
+    def train(self, document_name: str, variable_name: str, extraction: Extraction):
+        pass
+
+    @property
+    def labelling_method(self) -> str:
+        return "Semantic Search"
 
 
 

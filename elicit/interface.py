@@ -13,7 +13,7 @@ from spacy.language import Language
 
 
 from elicit.utils.loading import load_schema
-from database.db_utils import connect_db, get_next_id, get_doc_id, get_variable_id
+from database.db_utils import connect_db, get_next_id, get_doc_id, get_variable_id, get_extraction_id
 from elicit.utils import context_from_doc_char
 
 
@@ -24,7 +24,7 @@ class ElicitLogger:
 
     def __init__(self, db_path: Path):
         self.db = connect_db(db_path)
-        print("Connected to extraction database.")
+        print(f"Connected to Extraction Database: {db_path}")
 
     def _get_doc(self, document_name: str) -> int:
         doc_id = get_doc_id(self.db, document_name)
@@ -47,6 +47,21 @@ class ElicitLogger:
                 "INSERT INTO variable (variable_id, variable_name, variable_value, document_id) VALUES (?, ?, ?, ?)", (var_id, variable_name, variable_value, document_id))
             return var_id
 
+    def _get_extraction(self, document_id: int, variable_id: int, method: str) -> int:
+        """
+        Get the ID of the extraction with the given method and variable.
+        :param document_id: The ID of the document.
+        :param variable_id: The ID of the variable.
+        :param method: The method of the extraction.
+        :return: The ID of the extraction.
+        """
+        extraction_id = get_extraction_id(
+            self.db, method, variable_id, document_id)
+        if extraction_id >= 0:
+            return extraction_id
+        else:
+            return get_next_id(self.db, 'extraction')
+
     def _push_evidence(self, document_id: int, variable_id: int, extraction: "Extraction", method: str):
         """
         Push the given evidence to the database.
@@ -54,7 +69,8 @@ class ElicitLogger:
         :param variable_id: The ID of the variable.
         :param evidence: The evidence to push.
         """
-        next_extraction_id = get_next_id(self.db, 'extraction')
+        next_extraction_id = self._get_extraction(
+            document_id, variable_id, method)
         self.db.execute(
             "INSERT INTO extraction (extraction_id, method, exact_context, local_context, wider_context, confidence, variable_id, document_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (next_extraction_id, method, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, variable_id, document_id))
 
@@ -92,6 +108,14 @@ class LabellingFunctionBase(ABC):
         self.schemas = {k: v for k, v in schemas.items()}
         self.logger = logger
 
+    @abstractmethod
+    def load(self) -> None:
+        """
+        Load whatever is required for the labelling function,
+        e.g. wordlist, model, etc.
+        """
+        pass
+
     def get_schema(self, schema_name: str, variable: str = None) -> dict:
         """Get the schema for the given schema name."""
         try:
@@ -119,7 +143,7 @@ class LabellingFunctionBase(ABC):
             return False
         if isinstance(value, float) or self.get_schema('categories', variable_name) == 'raw':
             return True
-        return value in self.get_schema('categories', variable_name)
+        return value in [*self.get_schema('categories', variable_name), "ABSTAIN"]
 
     def push(self, document_name: str, variable_name: str, extraction: "Extraction"):
         """Push the given value to the database."""
@@ -128,6 +152,18 @@ class LabellingFunctionBase(ABC):
                 extraction.value, variable_name))
         self.logger.push(document_name, variable_name,
                          extraction, self.labelling_method)
+
+    def push_many(self, document_name: str, variable_name: str, extraction_list: List["Extraction"]) -> None:
+        """
+        Push the given extractions to the database.
+        :param document_name: The name of the document.
+        :param variable_name: The name of the variable.
+        :param extractions: The extractions to push.
+
+        :return: None
+        """
+        for extraction in extraction_list:
+            self.push(document_name, variable_name, extraction)
 
     @property
     @abstractmethod
@@ -161,6 +197,14 @@ class CategoricalLabellingFunction(LabellingFunctionBase):
         pass
 
     @abstractmethod
+    def load(self) -> None:
+        """
+        Load whatever is required for the labelling function,
+        e.g. wordlist, model, etc.
+        """
+        pass
+
+    @abstractmethod
     def extract(self, document_name: str, variable_name: str, document_text: str) -> None:
         """Use the labelling function to extract a label from a document."""
         pass
@@ -183,6 +227,14 @@ class NumericalLabellingFunction(LabellingFunctionBase):
     @abstractmethod
     def train(self, document_name: str, variable_name: str, extraction: "Extraction"):
         """Train the labelling function."""
+        pass
+
+    @abstractmethod
+    def load(self) -> None:
+        """
+        Load whatever is required for the labelling function,
+        e.g. wordlist, model, etc.
+        """
         pass
 
     @abstractmethod
@@ -246,7 +298,7 @@ class Extraction:
     @classmethod
     def abstain(cls, confidence: float = 0) -> "Extraction":
         """Abstains, providing no evidence"""
-        return cls("ABSTAIN", None, None, confidence)
+        return cls("ABSTAIN", None, None, None, confidence)
 
     @classmethod
     def from_character_startend(cls, doc: str, value: str, confidence: float, start: int, end: int, local_padding: int = 100, wider_padding: int = 500, max_chars: int = 100) -> "Extraction":
