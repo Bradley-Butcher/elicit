@@ -31,6 +31,7 @@ class Extractor:
                 self.schemas[schema_name] = yaml.safe_load(f)
         elif isinstance(schema, dict):
             self.schemas[schema_name] = schema
+        print(f"Registered schema: {schema_name}")
 
     def register_labelling_function(self, labelling_function: Type[LabellingFunctionBase], function_kwargs: dict = {}) -> None:
         # could change to not initialize until run to avoid the loading order issue
@@ -42,6 +43,7 @@ class Extractor:
         obj = labelling_function(schemas=self.schemas,
                                  logger=self.logger, **function_kwargs)
         self.lfs.append(obj)
+        print(f"Registered labelling function: {obj.labelling_method}")
 
     def _handle_loading(self):
         print("Handling LF loading")
