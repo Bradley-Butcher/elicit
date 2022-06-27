@@ -80,10 +80,12 @@ export default {
             </v-btn>
 
           </v-col>
-          <v-col class="cblock">
-            <v-card class="pa-2" outlined tile>
-              One of two columns
-            </v-card>
+          <!-- transparent temp backgrund to show area under development -->
+          <v-col class="cblock" style="background-color:aqua;">
+          <v-row align="center" justify="center">
+          <v-col class="d-flex justify-center align-center"><h3>Reserved Space for Document Summary</h3></v-col>
+          </v-row>
+            
           </v-col>
         </v-row>
         <v-row class="fill-height">
@@ -122,7 +124,4 @@ export default {
   text-align: center;
 }
 
-.cblock {
-  border: 1px dashed black;
-}
 </style>

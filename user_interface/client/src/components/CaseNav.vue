@@ -4,7 +4,7 @@
       <v-tab :class="{
         'v-tab--active': val == active_variable,
         processed: getStatus(val),
-      }" v-for="val in variables" :key="val" :href="'#tab-' + val" @click="active_variable = val">{{ val }}</v-tab>
+      }" v-for="val in variables" :key="val" :href="'#tab-' + val" @click="active_variable = val">{{ val.replace(/_/g, " ") }}</v-tab>
     </v-tabs>
     <AltCase :variable="active_variable" :variable_data="active_variable_data" @reload_variable="getMessage" />
   </div>
@@ -44,6 +44,7 @@ export default {
       axios
         .get(path)
         .then((res) => {
+          // replace _ with spaces in the variable names
           this.variable_list = res.data;
           if (!this.active_variable) {
             let first_key = res.data[0]["variable_name"];
@@ -77,6 +78,7 @@ export default {
       for (let i = 0; i < this.variable_list.length; i++) {
         let key = this.variable_list[i]["variable_name"];
         if (variables.indexOf(key) == -1) {
+          // replace _ with spaces
           variables.push(key);
         }
       }

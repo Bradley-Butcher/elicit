@@ -39,29 +39,18 @@ export default {
       this.getCase();
     },
   },
-  computed: {
-    sorted_variable_data() {
-      let sorted_variables = {};
-      for (let i = 0; i < this.variable_data.length; i++) {
-        let datum = this.variable_data[i];
-        if (datum.confidence) {
-          sorted_variables[datum.confidence] = datum;
-        } else {
-          sorted_variables[
-            this.get_total_confidence(this.extracted_data, datum.variable_id)
-          ] = datum;
+  methods: {
+    sort_var_data(variable_data, extracted_data) {
+      for (let i = 0; i < variable_data.length; i++) {
+        if (variable_data[i].confidence == null) {
+          variable_data[i].temp_confidence = this.get_total_confidence(extracted_data, variable_data[i].variable_id);
         }
       }
-      // return sorted list
-      return Object.keys(sorted_variables)
-        .sort()
-        .reverse()
-        .map(function (key) {
-          return sorted_variables[key];
-        });
+      console.log(variable_data);
+      // sort by confidence, then by temp_confidence, then by variable_name
+      variable_data.sort((a, b) => (a.confidence < b.confidence) ? 1 : (a.confidence === b.confidence) ? ((a.temp_confidence < b.temp_confidence) ? 1 : (a.temp_confidence === b.temp_confidence || a.temp_confidence == 0 || b.temp_confidence == 0) ? ((a.variable_name < b.variable_name) ? 1 : -1) : -1) : -1);
+      return variable_data;
     },
-  },
-  methods: {
     setEvidence(evidence) {
       this.active_evidence = evidence;
       this.showModalNow = !this.showModalNow;
@@ -86,6 +75,7 @@ export default {
         .get(path)
         .then((res) => {
           this.extracted_data = res.data;
+          this.variable_data = this.sort_var_data(this.variable_data, this.extracted_data);
         })
         .catch((error) => {
           // eslint-disable-next-line
@@ -144,7 +134,9 @@ export default {
       let total_count = 0;
       for (const i in input_data) {
         if (input_data[i].variable_id == variable_id) {
-          total_count += parseFloat(input_data[i].confidence);
+          if (input_data[i].confidence > 0) {
+            total_count += 1;
+          }
         }
       }
       return total_count;
@@ -220,7 +212,7 @@ export default {
 <template>
   <div style="max-height: 1000px">
     <div class="accordion" id="caseAccordian">
-      <div class="accordion-item" v-for="varz in sorted_variable_data" :key="varz.variable_id" :id="varz.variable_id">
+      <div class="accordion-item" v-for="varz in variable_data" :key="varz.variable_id" :id="varz.variable_id">
         <CaseButton :target="varz.variable_value" :target_id="varz.variable_id" @tabclick="triggerTab"
           :active="varz.variable_value == active_tab" :status="varz.human_response" @signal="collect_answer"
           v-if="renderComponent">
