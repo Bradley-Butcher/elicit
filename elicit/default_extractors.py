@@ -14,12 +14,13 @@ def generic_extractor(
     keyword_schema: Path,
 ):
     """
-    Core pipeline showing how to use the pipeline.
+    Generic extractor which runs the generic labelling functions.
 
-    :param pdfs: The list of PDFs to process.
-    :param question_schema: The question schema.
-    :param categories_schema: The categories schema.
-    :param keyword_schema: The keyword schema.
+    :param docs: List of paths to documents.
+    :param db_path: Path to database.
+    :param question_schema: Path to question schema.
+    :param categories_schema: Path to categories schema.
+    :param keyword_schema: Path to keyword schema.
     """
     extractor = Extractor(db_path=db_path)
 

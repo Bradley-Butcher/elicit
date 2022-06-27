@@ -4,7 +4,7 @@ Controlls document execution through registered labelling functions.
 
 """
 import functools
-from typing import Callable, List, Optional, Set, Type
+from typing import Callable, List, Optional, Set, Type, Union
 
 from pathlib import Path
 
@@ -22,12 +22,15 @@ class Extractor:
         self.lfs = []
         self.schemas = {}
 
-    def register_schema(self, schema: Path, schema_name: str) -> None:
+    def register_schema(self, schema: Union[Path, dict], schema_name: str) -> None:
         if len(self.lfs) > 0:
             raise ValueError(
                 "Must register schemas before registering labelling functions.")
-        with open(schema, "r") as f:
-            self.schemas[schema_name] = yaml.safe_load(f)
+        if isinstance(schema, Path):
+            with open(schema, "r") as f:
+                self.schemas[schema_name] = yaml.safe_load(f)
+        elif isinstance(schema, dict):
+            self.schemas[schema_name] = schema
 
     def register_labelling_function(self, labelling_function: Type[LabellingFunctionBase], function_kwargs: dict = {}) -> None:
         # could change to not initialize until run to avoid the loading order issue

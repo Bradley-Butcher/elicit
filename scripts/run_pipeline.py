@@ -1,7 +1,7 @@
 """Script which runs the test cases."""
 from pathlib import Path
 
-from elicit.example_extractor import generic_extractor
+from elicit.default_extractors import generic_extractor
 
 
 txt_path = Path(__file__).parent.parent / "data" / "lawpages_annotated"
