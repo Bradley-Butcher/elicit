@@ -1,0 +1,14 @@
+variable1:
+  cat1:
+    - kw1
+    - kw2
+  cat2:
+    - kw3
+    - kw4
+variable2:
+  cat1:
+    - oo1
+    - oo2
+  cat2:
+    - oo3
+    - oo4
