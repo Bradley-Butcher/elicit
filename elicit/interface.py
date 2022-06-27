@@ -23,6 +23,7 @@ class ElicitLogger:
     """
 
     def __init__(self, db_path: Path):
+        self.db_path = db_path
         self.db = connect_db(db_path)
         print(f"Connected to Extraction Database: {db_path}")
 

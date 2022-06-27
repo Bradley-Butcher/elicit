@@ -5,8 +5,10 @@ import click
 import os
 import signal
 
+from elicit.extractor import Extractor
 
-def launch_ui(db_path: Path):
+
+def launch_ui(*, db_path: Path = None, extractor: Extractor = None):
     """
     Launch the User Interface.
 
@@ -15,16 +17,14 @@ def launch_ui(db_path: Path):
     """
     ui_path = Path(__file__).parent.parent / "user_interface"
     # run two commands in parallel to launch the UI
-    try:
-        client = subprocess.Popen(
-            ["python", ui_path / "client" / "client.py"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-        server = subprocess.Popen(["python", ui_path / "server" /
-                                   "app.py", "--db_path", db_path],
-                                  stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    except:
-        print("Failed to launch UI")
-        return
+    if extractor is not None:
+        db_path = extractor.logger.db_path
+    client = subprocess.Popen(
+        ["python", ui_path / "client" / "client.py"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    server = subprocess.Popen(["python", ui_path / "server" /
+                               "app.py", "--db_path", db_path],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     try:
         get_ipython
         from IPython.core.display import display, HTML
@@ -59,7 +59,7 @@ def main():
 
 
 @main.command(name="GUI")
-@click.option("--db_path", default="test_db.sqlite", help="Name of the database.")
+@click.option("--db_path", default="database/test_db.sqlite", help="Name of the database.")
 def gui(db_path: str):
     """
     Launch the User Interface.
@@ -67,7 +67,7 @@ def gui(db_path: str):
     :param db_path: path of database to use.
 
     """
-    launch_ui(db_path)
+    launch_ui(db_path=db_path)
 
 
 @main.command(name="kill_ui")
