@@ -2,7 +2,7 @@ import imp
 from pathlib import Path
 from typing import List
 
-from elicit.labelling_functions import *
+from elicit.generic_labelling_functions import *
 from elicit.extractor import Extractor
 
 
