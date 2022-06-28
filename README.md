@@ -47,7 +47,7 @@ Installation steps:
 
 1. Clone the repository
 2. Navigate to the repository 
-3. Run `poetry install` (or `poetry install -E transformers` if you wish to use the transformer labelling functions)
+3. Run `poetry install` (or `poetry install -E transformers` if you wish to use the transformer generic labelling functions)
 
 # Usage
 
@@ -191,3 +191,11 @@ This is where loading for the labelling function is performed. The user must def
 ### Labelling Method
 
 This is simply the name of the labelling method. It is used to display the name of the labelling method in the UI.
+
+# Further examples
+
+We have written notebooks that further help with understanding the usage of Elicit. They can be found:
+
+1. Basic Usage: [examples/basic_example.ipynb](examples/basic_example.ipynb)
+
+More examples are in development.
