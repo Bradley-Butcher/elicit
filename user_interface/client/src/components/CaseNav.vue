@@ -1,12 +1,23 @@
 <template>
   <div class="ma-0 pa-0">
-    <v-tabs background-color="#2a2a2e" color="white" dark show-arrows full-width>
-      <v-tab :class="{
-        'v-tab--active': val == active_variable,
-        processed: getStatus(val),
-      }" v-for="val in variables" :key="val" :href="'#tab-' + val" @click="active_variable = val">{{ val.replace(/_/g, " ") }}</v-tab>
+    <v-tabs background-color="#FFEBEE30" color="black" show-arrows full-width>
+      <v-tab
+        :class="{
+          'v-tab--active': val == active_variable,
+          processed: getStatus(val),
+        }"
+        v-for="val in variables"
+        :key="val"
+        :href="'#tab-' + val"
+        @click="active_variable = val"
+        >{{ val.replace(/_/g, " ") }}</v-tab
+      >
     </v-tabs>
-    <AltCase :variable="active_variable" :variable_data="active_variable_data" @reload_variable="getMessage" />
+    <AltCase
+      :variable="active_variable"
+      :variable_data="active_variable_data"
+      @reload_variable="getMessage"
+    />
   </div>
 </template>
 
