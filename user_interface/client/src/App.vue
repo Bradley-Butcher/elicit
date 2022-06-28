@@ -3,10 +3,9 @@ import NavBar from "./components/NavBar.vue";
 import axios from "axios";
 
 export default {
-
   name: "App",
   components: {
-    NavBar
+    NavBar,
   },
   data() {
     return {
@@ -42,14 +41,23 @@ export default {
     <div id="app">
       <div id="modals"></div>
       <NavBar @open_sidebar="sidebar_open = !sidebar_open">
-        <router-view style="height:100vh;padding-top:64px;padding-bottom:64px" @update_doc_list="updateDocList(list)"
-          :document_display_list="document_display_list" :sidebar="sidebar_open" />
+        <router-view
+          style="height: 100vh; padding-top: 64px; padding-bottom: 64px"
+          @update_doc_list="updateDocList(list)"
+          :document_display_list="document_display_list"
+          :sidebar="sidebar_open"
+        />
       </NavBar>
       <v-footer dark padless>
-        <v-card flat tile class="lighten-1 white--text text-center"
-          style="height:64px; position:fixed; bottom:0; width:100%">
+        <v-card
+          flat
+          tile
+          class="lighten-1 white--text text-center"
+          style="height: 64px; position: fixed; bottom: 0; width: 100%"
+        >
           <v-card-text class="white--text">
-            {{ new Date().getFullYear() }} — <strong>The Turing Institute</strong>
+            {{ new Date().getFullYear() }} —
+            <strong>The Turing Institute</strong>
           </v-card-text>
         </v-card>
       </v-footer>

@@ -17,14 +17,6 @@ export default {
         @click="$emit('open_sidebar')"
         :class="{ invisible: $route.name != `Document` }"
       ></v-app-bar-nav-icon>
-
-      <v-btn text style="margin-left: 1%">
-        <router-link
-          style="text-decoration: none; color: inherit"
-          :to="{ path: '/' }"
-          >Home</router-link
-        >
-      </v-btn>
       <v-btn text>
         <router-link
           style="text-decoration: none; color: inherit"
@@ -37,13 +29,6 @@ export default {
           style="text-decoration: none; color: inherit"
           :to="{ path: '/performance' }"
           >Performance</router-link
-        >
-      </v-btn>
-      <v-btn text>
-        <router-link
-          style="text-decoration: none; color: inherit"
-          :to="{ path: '/' }"
-          >Schemas</router-link
         >
       </v-btn>
 

@@ -14,7 +14,7 @@ Elicit is a *human in the loop* machine learning tool for extracting information
 The tool works in a similar manner to weak supervision approaches, such as [Snorkel](https://github.com/snorkel-team/snorkel) or [Sqweak](https://github.com/NorskRegnesentral/skweak), where the output from a set of *labelling functions* are combined to form a distribution over possible labels. 
 
 <p align="center">
-<img src="pipeline.png" alt="drawing" width="60%"/>
+<img src="pipeline.jpg" alt="drawing" width="60%"/>
 </p>
 
 In Elicit, rather than using a generative model, the output from labelling functions are piped into a user inferface. Users then select the correct answer dependent on provided evidence.
