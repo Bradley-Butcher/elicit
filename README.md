@@ -7,6 +7,8 @@
 
 *elicit (v.) "to draw out, bring forth or to light"*
 
+[![CI](https://github.com/Bradley-Butcher/elicit/actions/workflows/ci.yaml/badge.svg)](https://github.com/Bradley-Butcher/elicit/actions/workflows/ci.yaml)
+
 Elicit is a *human in the loop* machine learning tool for extracting information from complex documents.
 
 The tool works in a similar manner to weak supervision approaches, such as [Snorkel](https://github.com/snorkel-team/snorkel) or [Sqweak](https://github.com/NorskRegnesentral/skweak), where the output from a set of *labelling functions* are combined to form a distribution over possible labels. 
@@ -32,47 +34,62 @@ The core tenets of Elicit are:
 - Privacy Preservation
 
 
-## Installation
+# Installation
 
-### Requirements:
+## Requirements:
 
 - Python >= 3.9: https://docs.conda.io/en/latest/miniconda.html
 - Poetry: https://python-poetry.org/
-- NodeJS: https://nodejs.org/en/
 
 Some form of GPU is **highly** reccomended.
 
-First install all python dependencies after navigating to the codebase: `poetry install`
+Installation steps:
 
-Following this, navigate to the user_interface/client folder and install the node dependencies: `cd user_interface/client` `npm install`
+1. Clone the repository
+2. Navigate to the repository 
+3. Run `poetry install` (or `poetry install -E transformers` if you wish to use the transformer labelling functions)
 
-An installation process using Docker will soon be added.
-## Usage
+# Usage
 
-The library is currently in very early development. Syntax, features, and functionality are subject to change.
+The library is currently in early development. Syntax, features, and functionality are subject to change.
 
-### User Interface
+## Extracting information from documents
 
-To run the user interface, run the bash script `./run_ui.sh`. You may need to give the script execute permission `chmod +x run_ui.sh`. Ensure you are using the appropriate python environment.
+You can find example pipelines in elicit/example_pipelines.py.
 
-Alternatively, run the commands:
+There are three steps in creating an extractor:
+- Creating an Extrator object.
+- Registering the appropriate schemas.
+- Registering the labelling functions.
+
+Example:
+
 ```
-# Run backend python server
-cd user_interface/server 
-python server/app.py
-
-# run vue frontend
-cd user_interface/client
-npm run serve 
+extractor = Extractor(db_path=current_dir / "test_db.sqlite") # Creates the extractor object
+extractor.register_schema(schema=categories,
+                            schema_name="categories") # Registers the category schema
+extractor.register_schema(schema=keywords,
+                            schema_name="keywords") # Registers the keyword schema
+extractor.register_labelling_function(KeywordMatchLF) # Registers the KeywordMatch LF
+extractor.run(docs) # Runs the extractor on the documents
+launch_ui(extractor=extractor) # Launches the UI for validation
 ```
-### Defining Schemas
 
-The existing labelling functions in Elicit have been designed to be "zero-shot". There is no training data required to get started. You therefore must define a set of schemas to 
+## User Interface
 
-- A set of questions to ask in order to extract the information.
-- A set categories which the answer can take (alternatively "raw" or "continuous" if the answer is a string or number respectively).
+There are two options to launching the user interface:
+1. The python function: `elicit.launch_ui(path_to_database | extraction_object)`
+2. Using the CLI: `elicit GUI --db_path path_to_database`
+## Defining Schemas
 
-Example below:
+The generic labelling functions in Elicit have been designed to be "zero-shot". There is no training data required to get started. However, you must create a set of schemas that are used by the generic labelling functions.
+
+- A set **categories** which the answer can take (alternatively "raw" or "numerical" if the answer is a string or number respectively).
+- A set of **keywords** to search for in the text.
+- A set of **questions** to ask in order to extract the information.
+
+
+Examples below for the variable "offender_confession":
 
 **Questions:**
 ```
@@ -98,52 +115,79 @@ offender_confession:
     - denied
   ```
 
-These are placed into the yaml files "categories.yml" and "questions.yml" respectively.
+These are placed into the yaml files "categories.yml", "keywords.yml" and "questions.yml" respectively. Alternatively, they can be passed via python dictionaries.
 
-Basic schemas are already defined in the /schemas directory. Check the demo schemas for simple examples.
+Some schemas are already defined in the /schemas directory. Check the demo schemas for simple examples.
 
-### Defining Pipelines
+## Creating Labelling functions
 
-You can find example pipelines in elicit/example_pipelines.py.
+Check the elicit/generic_labelling_functions directory for existing labelling functions. 
 
-There are two steps in creating a pipeline:
-- Registering the appropriate schema (if required).
-- Registering the labelling functions.
+Labelling functions can be created by subclassing the:
 
-e.g.:
+- elicit.interface.CategoricalLabellingFunction for categorical variables.
+- elicit.interface.NumericalLabellingFunction for numerical variables.
+- elicit.interface.RawLabellingFunction for raw (i.e. plain text, such as names) variables.
 
-```
-pipeline.register_schema(schema=keyword_schema, schema_name="keyword_schema")
-pipeline.register_function(keyword_match)
-pipeline.run(pdfs)
-```
-
-As the keyword match requires a keyword schema, the schema must be registered.
-
-### Creating Labelling functions
-
-Check the elicit/labelling_functions directory for existing labelling functions. 
-Any labelling function must have the `@labelling_function` decorator, which can be imported from the pipline.py file.
-
-E.g.
-```
-@labelling_function(labelling_method="Keyword Match", required_schemas=["keyword_schema"])
-def keyword_match(pdf_text, keyword_schema):
-    ...
-    return case
-```
-
-If you wish to use the same function with multiple schemas, this can be done like so:
+Example of a Categorical Labelling Function:
 
 ```
-pipeline.register_function(keyword_match, {"keyword_schema", "keyword_schema1.yml"})
-pipeline.register_function(keyword_match, {"keyword_schema", "keyword_schema2.yml"})
-```
-leaving the required_schemas empty.
+class ExampleLabellingFunction(CategoricalLabellingFunction):
+    def __init__(self, schemas, logger, **kwargs):
+        super().__init__(schemas, logger, **kwargs)
 
-The labelling function must return a correctly formed case object. Cases take casefields objects which contain the extracted value, confidence, and evidence. The evidence object has various classmethods to help create the evidence object, such as: `Evidence.from_character_startend`. Cases are pre-initialized by the decorator.
+    def extract(self, document_name: str, variable_name: str, document_text: str) -> None:
 
-Below is an example of adding a field to a case, check tests/test_case.py and the existing labelling functions for more examples:
+        kw_dicts = self.get_schema("keywords", variable_name)
+        exts = []
+        for k, kws in kw_dicts.items():
+            for kw in kws:
+                if kw in document_text:
+                    exts.append(Extraction(k, kw, kw, kw, 1))
+        self.push_many(
+            document_name=document_name,
+            variable_name=variable_name,
+            extraction_list=exts)
+
+    def train(self, document_name: str, variable_name: str, extraction: Extraction):
+        pass
+
+    def load(self) -> None:
+        self.model = "test_model"
+
+    @property
+    def labelling_method(self) -> str:
+        return "Test Labelling Function"
 ```
-case.add_field("test", CaseField(value="test_value", confidence=0.5, evidence=Evidence.no_match()))
-```
+
+There are **four** required methods in a labelling function:
+- `extract`: Extracts the information from the document.
+- `train`: Trains the labelling function.
+- `load`: Loads the models/anything required for the labelling function.
+- `labelling_method`: Returns the name of the labelling function.
+
+### Extract
+
+Extract takes the document name, the variable name, and the document text. The user must then define how the extraction is performed, and use the `self.push`, or `self.push_many` methods to push the extracted information into the database. Access to the schemas can be gained by calling `self.get_schema(schema_name, variable_name)`.
+
+Any extractions must be an instance of the `Extraction` class. The `Extraction` class has the following attributes:
+
+- value (str): The value of the extraction. This will either be the category, the numerical value, or raw text; depending on the type of labelling function.
+- exact_context (str): The exact context of the extraction. This is the text that was used to extract the value.
+- local_context (str): The local context of the extraction. This is the text that was used to extract the value, plus some context around it. Helps the user understand the context of the extraction.
+- wider_context (str): The wider context of the extraction. This is the text that was used to extract the value, plus some further context around it. This is what the user will see in a popup when the wish to see further context.
+- confidence (float): The confidence of the extraction.
+
+The contexts are ultimately the extraction methods "explanation" of the value they extract.
+
+### Train
+
+The train function is used to define how the labelling function learns from the human validation. The user must define how the training is performed.
+
+### Load
+
+This is where loading for the labelling function is performed. The user must define how the loading is performed. For transformers this is where the model is loaded.
+
+### Labelling Method
+
+This is simply the name of the labelling method. It is used to display the name of the labelling method in the UI.
