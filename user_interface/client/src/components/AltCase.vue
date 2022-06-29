@@ -43,12 +43,29 @@ export default {
     sort_var_data(variable_data, extracted_data) {
       for (let i = 0; i < variable_data.length; i++) {
         if (variable_data[i].confidence == null) {
-          variable_data[i].temp_confidence = this.get_total_confidence(extracted_data, variable_data[i].variable_id);
+          variable_data[i].temp_confidence = this.get_total_confidence(
+            extracted_data,
+            variable_data[i].variable_id
+          );
         }
       }
       console.log(variable_data);
       // sort by confidence, then by temp_confidence, then by variable_name
-      variable_data.sort((a, b) => (a.confidence < b.confidence) ? 1 : (a.confidence === b.confidence) ? ((a.temp_confidence < b.temp_confidence) ? 1 : (a.temp_confidence === b.temp_confidence || a.temp_confidence == 0 || b.temp_confidence == 0) ? ((a.variable_name < b.variable_name) ? 1 : -1) : -1) : -1);
+      variable_data.sort((a, b) =>
+        a.confidence < b.confidence
+          ? 1
+          : a.confidence === b.confidence
+          ? a.temp_confidence < b.temp_confidence
+            ? 1
+            : a.temp_confidence === b.temp_confidence ||
+              a.temp_confidence == 0 ||
+              b.temp_confidence == 0
+            ? a.variable_name < b.variable_name
+              ? 1
+              : -1
+            : -1
+          : -1
+      );
       return variable_data;
     },
     setEvidence(evidence) {
@@ -75,7 +92,10 @@ export default {
         .get(path)
         .then((res) => {
           this.extracted_data = res.data;
-          this.variable_data = this.sort_var_data(this.variable_data, this.extracted_data);
+          this.variable_data = this.sort_var_data(
+            this.variable_data,
+            this.extracted_data
+          );
         })
         .catch((error) => {
           // eslint-disable-next-line
@@ -197,12 +217,12 @@ export default {
       this.active_tab = -1;
       this.show_toast(
         "<span><strong>" +
-        subject +
-        "</strong> set as: <strong>" +
-        answer +
-        "</strong> for variable: <strong>" +
-        this.variable +
-        "</strong></span>"
+          subject +
+          "</strong> set as: <strong>" +
+          answer +
+          "</strong> for variable: <strong>" +
+          this.variable +
+          "</strong></span>"
       );
     },
   },
@@ -212,26 +232,59 @@ export default {
 <template>
   <div style="max-height: 1000px">
     <div class="accordion" id="caseAccordian">
-      <div class="accordion-item" v-for="varz in variable_data" :key="varz.variable_id" :id="varz.variable_id">
-        <CaseButton :target="varz.variable_value" :target_id="varz.variable_id" @tabclick="triggerTab"
-          :active="varz.variable_value == active_tab" :status="varz.human_response" @signal="collect_answer"
-          v-if="renderComponent">
-          <div class="p-2 bg-primary text-white">
-            Value: {{ varz.variable_value }}
-          </div>
-          <div class="vr bg-dark"></div>
-          <div class="p-2 bg-secondary text-white">
-            <!-- {{ varz.confidence }} -->
-            {{ get_confidence(varz, extracted_data, varz.variable_id) }}
-          </div>
-          <div class="vr bg-dark"></div>
-          <div class="p-2 bg-warning text-white" style="max-width: 50%">
-            Evidence: {{ get_best_evidence(varz) }}
-          </div>
+      <div
+        class="accordion-item"
+        v-for="varz in variable_data"
+        :key="varz.variable_id"
+        :id="varz.variable_id"
+      >
+        <CaseButton
+          :target="varz.variable_value"
+          :target_id="varz.variable_id"
+          @tabclick="triggerTab"
+          :active="varz.variable_value == active_tab"
+          :status="varz.human_response"
+          @signal="collect_answer"
+          v-if="renderComponent"
+        >
+          <v-card
+            class="p-2 mr-2"
+            elevation="0"
+            outlined
+            style="background-color: #f9fbe7"
+          >
+            <div class="text-black">Value: {{ varz.variable_value }}</div>
+          </v-card>
+          <v-card
+            class="p-2 mr-2"
+            elevation="0"
+            outlined
+            style="background-color: #f3e5f5"
+          >
+            <div class="text-black">
+              <!-- {{ varz.confidence }} -->
+              {{ get_confidence(varz, extracted_data, varz.variable_id) }}
+            </div></v-card
+          >
+          <v-card
+            class="p-2"
+            elevation="0"
+            outlined
+            style="background-color: #eceff1"
+          >
+            <div class="text-black" style="max-width: 100%">
+              Evidence: {{ get_best_evidence(varz) }}
+            </div></v-card
+          >
         </CaseButton>
 
-        <div id="collapseOne" class="accordion-collapse collapse" :class="{ show: active_tab == varz.variable_value }"
-          aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+        <div
+          id="collapseOne"
+          class="accordion-collapse collapse"
+          :class="{ show: active_tab == varz.variable_value }"
+          aria-labelledby="headingOne"
+          data-bs-parent="#accordionExample"
+        >
           <div class="accordion-body">
             <div class="table-responsive">
               <table id="var_table" class="table justify-content-center">
@@ -244,17 +297,22 @@ export default {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="ev in format_evidence(
-                    extracted_data,
-                    varz.variable_id
-                  )" :key="ev.id">
+                  <tr
+                    v-for="ev in format_evidence(
+                      extracted_data,
+                      varz.variable_id
+                    )"
+                    :key="ev.id"
+                  >
                     <th scope="row">
                       <span v-html="add_mark(ev)"></span>
                     </th>
                     <td>{{ ev.method }}</td>
                     <td>{{ Math.round(ev.confidence * 1000) / 10 }}%</td>
                     <td>
-                      <v-btn depressed dark tile @click="setEvidence(ev)">View</v-btn>
+                      <v-btn depressed dark tile @click="setEvidence(ev)"
+                        >View</v-btn
+                      >
                     </td>
                   </tr>
                 </tbody>
@@ -265,17 +323,30 @@ export default {
       </div>
     </div>
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-      <div id="liveToast" class="toast align-items-center fade"
-        :class="{ hide: toast_showing == false, show: toast_showing == true }" role="alert" aria-live="assertive"
-        aria-atomic="true">
+      <div
+        id="liveToast"
+        class="toast align-items-center fade"
+        :class="{ hide: toast_showing == false, show: toast_showing == true }"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
         <div class="d-flex bg-dark text-white">
           <div class="toast-body bg-dark text-white" v-html="toast_text"></div>
-          <button type="button" class="btn-close me-2 m-auto text-white" data-bs-dismiss="toast"
-            aria-label="Close"></button>
+          <button
+            type="button"
+            class="btn-close me-2 m-auto text-white"
+            data-bs-dismiss="toast"
+            aria-label="Close"
+          ></button>
         </div>
       </div>
     </div>
-    <ContextModal :evidence="active_evidence" :showModal="showModalNow" @closeModal="closeModalNow"></ContextModal>
+    <ContextModal
+      :evidence="active_evidence"
+      :showModal="showModalNow"
+      @closeModal="closeModalNow"
+    ></ContextModal>
   </div>
 </template>
 
@@ -286,11 +357,21 @@ export default {
   margin-left: auto;
   margin-right: auto;
   margin-top: 1%;
+  margin-bottom: 0;
 }
 
 #variable_title {
   margin-left: auto;
   margin-right: auto;
   margin-top: 2%;
+}
+
+.accordion-body {
+  /* only padding left 10px */
+  padding: 0 20px 0 30px;
+}
+
+.table > :not(:first-child) {
+  border-top: none;
 }
 </style>
