@@ -7,7 +7,7 @@ import re
 import warnings
 from elicit.interface import CategoricalLabellingFunction, Extraction
 
-from elicit.labelling_functions.qa_transformer import extract_answers
+from elicit.generic_labelling_functions.qa_transformer import extract_answers
 
 
 warnings.filterwarnings("ignore")

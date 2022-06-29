@@ -8,7 +8,7 @@ import signal
 from elicit.extractor import Extractor
 
 
-def launch_ui(*, db_path: Path = None, extractor: Extractor = None):
+def launch_ui(*, db_path: Path = None, extractor: Extractor = None, test: bool = False, output: bool = False):
     """
     Launch the User Interface.
 
@@ -19,12 +19,25 @@ def launch_ui(*, db_path: Path = None, extractor: Extractor = None):
     # run two commands in parallel to launch the UI
     if extractor is not None:
         db_path = extractor.logger.db_path
-    client = subprocess.Popen(
-        ["python", ui_path / "client" / "client.py"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    server = subprocess.Popen(["python", ui_path / "server" /
-                               "app.py", "--db_path", db_path],
-                              stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    if not test:
+        if output:
+            client = subprocess.Popen(
+                ["python", ui_path / "client" / "client.py"],
+            )
+        else:
+            client = subprocess.Popen(
+                ["python", ui_path / "client" / "client.py"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    else:
+        client = subprocess.Popen(
+            ["npm", "run", "serve"], cwd=ui_path / "client")
+    if not output:
+        server = subprocess.Popen(["python", ui_path / "server" /
+                                   "app.py", "--db_path", db_path],
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    else:
+        server = subprocess.Popen(["python", ui_path / "server" /
+                                   "app.py", "--db_path", db_path])
     try:
         get_ipython
         from IPython.core.display import display, HTML
@@ -60,14 +73,15 @@ def main():
 
 @main.command(name="GUI")
 @click.option("--db_path", default="database/test_db.sqlite", help="Name of the database.")
-def gui(db_path: str):
+@click.option("--test", is_flag=True, help="Run UI in test mode.", default=False)
+def gui(db_path: str, test: bool):
     """
     Launch the User Interface.
 
     :param db_path: path of database to use.
 
     """
-    launch_ui(db_path=db_path)
+    launch_ui(db_path=db_path, test=test)
 
 
 @main.command(name="kill_ui")
