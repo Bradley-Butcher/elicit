@@ -1,6 +1,6 @@
 <template>
   <div class="ma-0 pa-0">
-    <v-tabs background-color="#FFEBEE30" color="black" show-arrows full-width>
+    <v-tabs background-color="#FFF" color="black" show-arrows full-width>
       <v-tab
         :class="{
           'v-tab--active': val == active_variable,

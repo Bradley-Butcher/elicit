@@ -19,6 +19,36 @@ export default {
       this.$router.push({ name: "Document", params: { id: value } });
       this.active_case = value;
     },
+    dragged(event) {
+      //get item
+      //get parent
+      var parent = document.getElementById("viewrow");
+      // get distance of drag
+      let clientx = event.clientX;
+      if (clientx == 0) {
+        return;
+      }
+      let x = event.clientX - parent.offsetLeft;
+      // resize max-width of casecol proportional to drag
+      let width = (x / parent.offsetWidth) * 100;
+      // set max-width of casecol
+      // get item with id casecol
+      let casecol = document.getElementById("casecol");
+      casecol.style.maxWidth = width + "%";
+      // get item
+      let sidecol = document.getElementById("sidecol");
+      sidecol.style.maxWidth = 100 - width + "%";
+    },
+    div_mousedown(event) {
+      // get item
+      let item = event.target;
+      item.style.transition = "initial";
+    },
+    div_mouseup(event) {
+      // get item
+      let item = event.target;
+      item.style.transition = "";
+    },
     getNextDocument() {
       let idx = this.document_display_list.findIndex(
         (doc) => doc.case_id === this.active_case
@@ -71,10 +101,11 @@ export default {
           overflow: hidden;
         "
       >
-        <v-row class="fill-height">
+        <v-row class="fill-height" id="viewrow">
           <v-col
             class="ma-0 pa-0 fill-height fill-width"
-            cols="9"
+            id="casecol"
+            style="max-width: 70%"
             align="center"
           >
             <CaseNav
@@ -82,20 +113,48 @@ export default {
               :current_case="$route.params.id"
               :refresh_case="refresh_case"
               style="max-width: 100%"
-            />
-          </v-col>
+            /> </v-col
+          ><v-divider
+            id="dragsep"
+            @drag="dragged"
+            @mousedown="div_mousedown"
+            @mouseup="div_mouseup"
+            class="ma-0 pa-0"
+            vertical
+            draggable="true"
+          ></v-divider>
           <v-col
+            id="sidecol"
             class="ma-0 pa-0"
             align="center"
-            style="max-height: 100%"
-            cols="3"
+            style="max-width: 30%"
+            width="20%"
           >
             <v-row id="summary" class="ma-0 pa-0 temp" style="height: 40%">
-              <v-col align="center">Summary</v-col> </v-row
+              <v-col align="center"><h4>Document Summary</h4> </v-col
+              ><v-card class="p-3 mr-2" elevation="2">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+                eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+                enim ad minim veniam, quis nostrud exercitation ullamco laboris
+                nisi ut aliquip ex ea commodo consequat.
+              </v-card> </v-row
             ><v-divider class="ma-0 pa-0"></v-divider>
             <v-row id="stats" class="ma-0 pa-0 temp" style="height: 30%">
-              <v-col align="center">Stats</v-col> </v-row
-            ><v-divider class="ma-0 pa-0"></v-divider>
+              <v-col align="center"
+                ><v-row justify="center" style="height: 30%"
+                  ><v-col align="center"><h4>Statistics</h4></v-col> ></v-row
+                >
+                <v-row justify="center" style="height: 35%"
+                  ><v-col align="center"><h6>X% Accuracy</h6></v-col
+                  ><v-col align="center"><h6>Best LF: Y</h6></v-col></v-row
+                >
+                <v-row justify="center" style="height: 35%"
+                  ><v-col align="center"><h6>Coverage: Z%</h6></v-col
+                  ><v-col align="center"><h6>Stat 4: W%</h6></v-col></v-row
+                >
+              </v-col>
+            </v-row>
+            <v-divider class="ma-0 pa-0"></v-divider>
             <v-row id="controlpanel" class="ma-0 pa-0 temp" style="height: 30%">
               <v-col align="center">
                 <h5 class="ma-2 pa-2">Document: {{ active_case }}</h5>
@@ -149,15 +208,28 @@ export default {
   text-align: center;
 }
 
-#controlpanel {
-  background-color: rgb(210, 213, 213, 0.5);
+#dragsep {
+  max-width: 2px;
+  color: rgb(0, 0, 0);
 }
 
-#summary {
-  background-color: #88fad650;
+#dragsep:hover {
+  cursor: col-resize;
+  // glow
+  border: 2px solid rgb(150, 127, 245);
+}
+.vue-grid-item.cssTransforms {
+  transition-property: inherit !important;
+}
+.vue-resizable.resizing {
+  pointer-events: none;
+}
+.vue-draggable-dragging {
+  pointer-events: none;
 }
 
 #stats {
-  background-color: #fad6fa50;
+  background-color: #1e1e1e;
+  color: white;
 }
 </style>
