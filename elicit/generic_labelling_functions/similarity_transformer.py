@@ -7,8 +7,8 @@ from typing import Dict, List, Tuple, Union
 import warnings
 
 from elicit.interface import CategoricalLabellingFunction, Extraction
-from elicit.labelling_functions.qa_transformer import extract_answers
-from elicit.labelling_functions.nli_transformer import compress
+from elicit.generic_labelling_functions.qa_transformer import extract_answers
+from elicit.generic_labelling_functions.nli_transformer import compress
 
 
 warnings.filterwarnings("ignore")
