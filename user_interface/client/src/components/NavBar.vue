@@ -53,7 +53,7 @@ export default {
           </v-btn>
         </v-col>
         <v-col class="ma-0 pa-1" cols="5" align="center">
-          <v-toolbar-title>Elicit V0.1-pre-alpha</v-toolbar-title>
+          <v-toolbar-title>Elicit pre-alpha</v-toolbar-title>
         </v-col>
         <v-col style="max-width: 70px" class="ma-0 pa-0" cols="1" align="right">
           <Export></Export>
