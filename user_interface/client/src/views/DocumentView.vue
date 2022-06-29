@@ -210,7 +210,7 @@ export default {
 
 #dragsep {
   max-width: 2px;
-  color: blueviolet;
+  color: rgb(0, 0, 0);
 }
 
 #dragsep:hover {
