@@ -12,7 +12,13 @@ export default {
 
 <template>
   <v-card class="overflow-hidden">
-    <v-app-bar absolute color="white" elevate-on-scroll scroll-target="#page">
+    <v-app-bar
+      absolute
+      color="white"
+      elevate-on-scroll
+      scroll-target="#page"
+      style="border-bottom: 1px solid #e0e0e0 !important"
+    >
       <v-row
         class="ma-0 pa-0"
         style="max-height: 100%; width: 100%; flex-grow: 1"

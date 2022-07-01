@@ -40,6 +40,14 @@ export default {
     },
   },
   methods: {
+    variable_status(evidence_list) {
+      for (var i = 0; i < evidence_list.length; i++) {
+        if (evidence_list[i].valid == "TRUE") {
+          return true;
+        }
+      }
+      return false;
+    },
     sort_var_data(variable_data, extracted_data) {
       for (let i = 0; i < variable_data.length; i++) {
         if (variable_data[i].confidence == null) {
@@ -49,7 +57,6 @@ export default {
           );
         }
       }
-      console.log(variable_data);
       // sort by confidence, then by temp_confidence, then by variable_name
       variable_data.sort((a, b) =>
         a.confidence < b.confidence
@@ -102,13 +109,16 @@ export default {
           console.error(error);
         });
     },
-    setAnswer(variable_id, answer) {
+    setAnswer(extraction_id, answer) {
       const path =
-        "http://127.0.0.1:5000/api/submit_answer/" + variable_id + "/" + answer;
+        "http://127.0.0.1:5000/api/submit_answer/" +
+        extraction_id +
+        "/" +
+        answer;
       axios
         .post(path)
         .then(() => {
-          this.$emit("reload_variable");
+          // this.$emit("reload_variable");
         })
         .catch((error) => {
           // eslint-disable-next-line
@@ -135,6 +145,8 @@ export default {
           data.push(input_data[i]);
         }
       }
+      // sort by confidence
+      data.sort((a, b) => (a.confidence < b.confidence ? 1 : -1));
       return data;
     },
     get_agreement(input_data, variable_id) {
@@ -207,17 +219,20 @@ export default {
       this.toast_text = text;
       setTimeout(() => {
         this.toast_showing = false;
-      }, 3000);
+      }, 5000);
     },
-    collect_answer(args) {
-      const subject_id = args[0];
-      const subject = args[1];
-      const answer = args[2];
-      this.setAnswer(subject_id, answer);
-      this.active_tab = -1;
+    collect_answer(variable, extraction, answer) {
+      if (extraction.valid != answer) {
+        extraction.valid = answer;
+      } else {
+        extraction.valid = null;
+      }
+      this.setAnswer(extraction.extraction_id, extraction.valid);
       this.show_toast(
-        "<span><strong>" +
-          subject +
+        "<span>Evidence from: <strong>" +
+          extraction.method +
+          "</strong> for value: <strong>" +
+          variable.variable_value +
           "</strong> set as: <strong>" +
           answer +
           "</strong> for variable: <strong>" +
@@ -231,7 +246,7 @@ export default {
 
 <template>
   <div style="max-height: 1000px">
-    <div class="accordion" id="caseAccordian">
+    <div class="accordion accordion-flush" id="caseAccordian">
       <div
         class="accordion-item"
         v-for="varz in variable_data"
@@ -241,10 +256,11 @@ export default {
         <CaseButton
           :target="varz.variable_value"
           :target_id="varz.variable_id"
-          @tabclick="triggerTab"
+          @tabclick="triggerTab(varz.variable_id)"
           :active="varz.variable_value == active_tab"
-          :status="varz.human_response"
-          @signal="collect_answer"
+          :status="
+            variable_status(format_evidence(extracted_data, varz.variable_id))
+          "
           v-if="renderComponent"
         >
           <v-card
@@ -281,7 +297,7 @@ export default {
         <div
           id="collapseOne"
           class="accordion-collapse collapse"
-          :class="{ show: active_tab == varz.variable_value }"
+          :class="{ show: active_tab == varz.variable_id }"
           aria-labelledby="headingOne"
           data-bs-parent="#accordionExample"
         >
@@ -290,10 +306,19 @@ export default {
               <table id="var_table" class="table justify-content-center">
                 <thead>
                   <tr>
-                    <th style="width: 40%" scope="col">Evidence</th>
-                    <th style="width: 20%" scope="col">Source</th>
-                    <th style="width: 20%" scope="col">Confidence</th>
-                    <th style="width: 20%" scope="col">More Context</th>
+                    <th style="max-width: 40%" scope="col">Evidence</th>
+                    <th style="max-width: 15%; text-align: center" scope="col">
+                      Source
+                    </th>
+                    <th style="max-width: 15%; text-align: center" scope="col">
+                      Confidence
+                    </th>
+                    <th style="max-width: 15%; text-align: center" scope="col">
+                      Context
+                    </th>
+                    <th style="max-width: 15%; text-align: center" scope="col">
+                      Valid
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -307,12 +332,31 @@ export default {
                     <th scope="row">
                       <span v-html="add_mark(ev)"></span>
                     </th>
-                    <td>{{ ev.method }}</td>
-                    <td>{{ Math.round(ev.confidence * 1000) / 10 }}%</td>
-                    <td>
-                      <v-btn depressed dark tile @click="setEvidence(ev)"
+                    <td style="text-align: center">{{ ev.method }}</td>
+                    <td style="text-align: center">
+                      {{ Math.round(ev.confidence * 1000) / 10 }}%
+                    </td>
+                    <td style="text-align: center">
+                      <v-btn
+                        class="p-0"
+                        depressed
+                        outlined
+                        small
+                        @click="setEvidence(ev)"
                         >View</v-btn
                       >
+                    </td>
+                    <td style="text-align: center">
+                      <i
+                        @click="collect_answer(varz, ev, 'TRUE')"
+                        class="fas fa-check fa-lg ms-auto check mr-1"
+                        :class="{ valid: ev.valid == 'TRUE' }"
+                      ></i>
+                      <i
+                        @click="collect_answer(varz, ev, 'FALSE')"
+                        class="fas fa-times fa-lg ms-auto check ml-1"
+                        :class="{ valid: ev.valid == 'FALSE' }"
+                      ></i>
                     </td>
                   </tr>
                 </tbody>
@@ -373,5 +417,14 @@ export default {
 
 .table > :not(:first-child) {
   border-top: none;
+}
+
+.check:hover {
+  color: rgb(104, 211, 5);
+  cursor: pointer;
+}
+
+.valid {
+  color: rgb(104, 211, 5);
 }
 </style>

@@ -77,11 +77,11 @@ def get_variable_list():
     return jsonify([v["variable_name"] for v in output])
 
 
-@app.route('/api/submit_answer/<variable_id>/<answer>', methods=['POST', 'GET'])
+@app.route('/api/submit_answer/<extraction_id>/<answer>', methods=['POST', 'GET'])
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
-def submit_answer(variable_id: int, answer: str):
-    query_db(
-        db, f"UPDATE variable SET human_response='{answer}' WHERE variable_id={variable_id}")
+def submit_answer(extraction_id: int, answer: str):
+    query_db(db,
+             f"UPDATE extraction SET valid='{answer}' WHERE extraction_id={extraction_id}")
     db.commit()
     return "OK"
 
@@ -150,17 +150,20 @@ def get_case_names():
 def get_document_statuses():
     documents = query_db(db, f"SELECT * FROM document")
     variables = query_db(db, f"SELECT * FROM variable")
+    extractions = query_db(db, f"SELECT * FROM extraction")
     variable_df = pd.DataFrame(variables).merge(
         pd.DataFrame(documents), on="document_id")
-    result = variable_df.groupby(["variable_name", "document_name"]).apply(lambda x: any((x["human_response"] == "correct") | (
-        x["human_response"] == "unknown") | (x["human_response"] == "incorrect"))).to_frame("variable_complete").reset_index()
+    df = variable_df.merge(
+        pd.DataFrame(extractions), on=["document_id", "variable_id"])
+    result = df.groupby(["variable_name", "document_name"]).apply(
+        lambda x: any(x["valid"] == "TRUE")).to_frame("variable_complete").reset_index()
     result = result.pivot(index="document_name", columns="variable_name",
                           values="variable_complete").reset_index()
     return jsonify(result.to_json(orient="records"))
 
 
-@app.route('/api/get_response_statuses/<doc_name>', methods=['GET'])
-@cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
+@ app.route('/api/get_response_statuses/<doc_name>', methods=['GET'])
+@ cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
 def response_statuses(doc_name):
     cases = query_db(
         db, f"SELECT * FROM document WHERE document_name='{doc_name}' LIMIT 1")[0]
@@ -176,8 +179,8 @@ def response_statuses(doc_name):
     return jsonify(results)
 
 
-@app.route('/api/get_precision/<variable_name>/<binary>', methods=['GET'])
-@cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
+@ app.route('/api/get_precision/<variable_name>/<binary>', methods=['GET'])
+@ cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
 def get_precision(variable_name: str, binary: bool):
     # Get Matrix of Variable Value Confidence
     variables = query_db(
@@ -229,8 +232,8 @@ def get_precision(variable_name: str, binary: bool):
     return jsonify(data)
 
 
-@app.route('/api/get_accuracy', methods=['GET'])
-@cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
+@ app.route('/api/get_accuracy', methods=['GET'])
+@ cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
 def get_accuracy():
     df = pd.DataFrame(query_db(db, f"SELECT variable.document_id, document.document_name, extraction.confidence as extraction_confidence, variable.confidence as variable_confidence, human_response, variable_name, variable_value FROM extraction LEFT JOIN variable ON extraction.variable_id=variable.variable_id LEFT JOIN document ON variable.document_id=document.document_id"))
     df["extraction_confidence"] = df["extraction_confidence"].astype(float)

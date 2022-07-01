@@ -84,6 +84,8 @@ class ElicitLogger:
         """
         doc_id = self._get_doc(document_name)
         var_id = self._get_variable(doc_id, variable_name, variable_value)
+        self._push_evidence(doc_id, var_id, Extraction.not_present(
+            variable_value), "default")
         self.db.commit()
 
     def push(self, document_name: str, variable_name: str, extraction: "Extraction", method: str):
@@ -300,6 +302,11 @@ class Extraction:
     def abstain(cls, confidence: float = 0) -> "Extraction":
         """Abstains, providing no evidence"""
         return cls("ABSTAIN", None, None, None, confidence)
+
+    @classmethod
+    def not_present(cls, value: str):
+        """Not present, providing no evidence"""
+        return cls(value, None, None, None, 0)
 
     @classmethod
     def from_character_startend(cls, doc: str, value: str, confidence: float, start: int, end: int, local_padding: int = 100, wider_padding: int = 500, max_chars: int = 100) -> "Extraction":
