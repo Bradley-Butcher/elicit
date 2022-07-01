@@ -19,7 +19,9 @@ The tool works in a similar manner to weak supervision approaches, such as [Snor
 
 In Elicit, rather than using a generative model, the output from labelling functions are piped into a user inferface. Users then select the correct answer dependent on provided evidence.
 
-
+<p align="center">
+<img src="https://user-images.githubusercontent.com/26380879/176930151-616e4daf-4569-4c79-b566-a14db4cdda77.png" alt="drawing" width="60%"/>
+</p>
 These annotations can then be exported into a tabular dataset. Rather than fully automate, our goal is to dramatically speed up the manual extraction process.
 
 
