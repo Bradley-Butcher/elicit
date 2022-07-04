@@ -2,8 +2,6 @@
 import subprocess
 from pathlib import Path
 import click
-import os
-import signal
 
 from elicit.extractor import Extractor
 
@@ -15,29 +13,31 @@ def launch_ui(*, db_path: Path = None, extractor: Extractor = None, test: bool =
     :param db_name: Name of database to use.
 
     """
+    # Setup logging
+    log_folder = Path(__file__).parent.parent / ".logs"
+    log_folder.mkdir(exist_ok=True)
+    (log_folder / "client.log").unlink(missing_ok=True)
+    (log_folder / "server.log").unlink(missing_ok=True)
+
     ui_path = Path(__file__).parent.parent / "user_interface"
     # run two commands in parallel to launch the UI
     if extractor is not None:
         db_path = extractor.logger.db_path
     if not test:
-        if output:
+        with open(log_folder / "client.log", "w") as f:
             client = subprocess.Popen(
                 ["python", ui_path / "client" / "client.py"],
+                stdout=f,
+                stderr=f,
             )
-        else:
-            client = subprocess.Popen(
-                ["python", ui_path / "client" / "client.py"],
-                stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     else:
         client = subprocess.Popen(
             ["npm", "run", "serve"], cwd=ui_path / "client")
-    if not output:
+    with open(log_folder / "server.log", "w") as f:
         server = subprocess.Popen(["python", ui_path / "server" /
                                    "app.py", "--db_path", db_path],
-                                  stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    else:
-        server = subprocess.Popen(["python", ui_path / "server" /
-                                   "app.py", "--db_path", db_path])
+                                  stdout=f,
+                                  stderr=f)
     try:
         get_ipython
         from IPython.core.display import display, HTML

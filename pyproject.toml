@@ -5,7 +5,7 @@ description = "Elicit is a human in the loop machine learning tool for extractin
 authors = ["bradley-butcher <bradleydpbutcher@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "~3.9"
 tqdm = "^4.62.3"
 "pdfminer.six" = "^20211012"
 spacy = "^3.1.4"
