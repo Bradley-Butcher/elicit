@@ -2,8 +2,6 @@
 import subprocess
 from pathlib import Path
 import click
-import os
-import signal
 
 from elicit.extractor import Extractor
 
