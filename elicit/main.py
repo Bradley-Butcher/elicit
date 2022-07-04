@@ -16,8 +16,8 @@ def launch_ui(*, db_path: Path = None, extractor: Extractor = None, test: bool =
     # Setup logging
     log_folder = Path(__file__).parent.parent / ".logs"
     log_folder.mkdir(exist_ok=True)
-    (log_folder / "client.log").unlink()
-    (log_folder / "server.log").unlink()
+    (log_folder / "client.log").unlink(missing_ok=True)
+    (log_folder / "server.log").unlink(missing_ok=True)
 
     ui_path = Path(__file__).parent.parent / "user_interface"
     # run two commands in parallel to launch the UI
