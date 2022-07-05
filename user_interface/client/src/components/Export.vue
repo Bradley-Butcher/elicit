@@ -10,7 +10,7 @@ import axios from "axios";
 export default {
   methods: {
     getData() {
-      const path = "http://127.0.0.1:5000/api/get_data/";
+      const path = "http://127.0.0.1:5000/api/download_data/";
       axios
         .get(path)
         .then((res) => {
