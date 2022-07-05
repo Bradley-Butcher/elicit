@@ -90,22 +90,29 @@ def submit_answer(extraction_id: int, answer: str):
 @cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
 def download_data():
     # get all docs
-    docs = query_db(db, "SELECT document_name,  FROM document")
+    docs = query_db(db, "SELECT document_name, document_id FROM document")
     doc_df = pd.DataFrame(docs)
 
     # Get all variables
-    vars = query_db(db, "SELECT * FROM variable")
+    vars = query_db(
+        db, "SELECT variable_id, variable_name, variable_value FROM variable")
     vars_df = pd.DataFrame(vars)
     # Get all extractions
-    extractions = query_db(db, "SELECT * FROM extraction")
+    extractions = query_db(db, "SELECT extraction_id, valid FROM extraction")
     extractions_df = pd.DataFrame(extractions)
-
-    # filter for validated
-    extractions_df = extractions_df[extractions_df["valid"] == "TRUE"]
 
     # merge
     df = pd.merge(doc_df, vars_df, on="variable_id")
     df = pd.merge(df, extractions_df, on="extraction_id")
+
+    # New Dataframe: each row is a document/variable with a list of validated values
+    df = df.groupby(["document_name", "variable_name"]).apply(
+        lambda x: [xi["variable_value"] for xi in x if x["valid"] == "TRUE"]).to_frame("validated_vals").reset_index()
+
+    # Pivot out the variables, making each column correspond to a variable, and each row a document.
+    df = df.pivot(index="document_name", columns=[
+                  "variable_name"], values=["validated_vals"])
+    return df.to_csv(index=False)
 
     # def handle_var(doc_group: pd.DataFrame):
     #     def handle_var_val(val_group: pd.DataFrame):
