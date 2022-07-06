@@ -122,15 +122,9 @@ def create_app(db_path: Path, test_config=None):
 
     @app.route('/api/update_confidence/', methods=['GET'])
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
-    def update_confidence():
+    def update_conf():
         db = get_db()
-        variables = query_db(db, "SELECT * FROM variable")
-        extractions = query_db(db, f"SELECT * FROM extraction")
-        indicies, confidences = get_confidence(variables, extractions)
-        for idx, confidence in zip(indicies, confidences):
-            query_db(
-                db, f"UPDATE variable SET confidence={'NULL' if confidence == '?' else confidence} WHERE variable_id={idx}")
-        db.commit()
+        update_confidence(db)
         return "OK"
 
     @app.route('/api/get_cases', methods=['GET'])
