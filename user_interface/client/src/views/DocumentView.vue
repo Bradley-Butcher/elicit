@@ -132,7 +132,7 @@ export default {
           >
             <v-row id="summary" class="ma-0 pa-0 temp" style="height: 40%">
               <v-col align="center"><h4>Document Summary</h4> </v-col
-              ><v-card class="p-3 mr-2" elevation="2">
+              ><v-card class="p-3 mr-2" elevation="0">
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
                 eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
                 enim ad minim veniam, quis nostrud exercitation ullamco laboris
@@ -210,7 +210,7 @@ export default {
 
 #dragsep {
   max-width: 2px;
-  color: rgb(0, 0, 0);
+  color: #52796f;
 }
 
 #dragsep:hover {
@@ -229,7 +229,7 @@ export default {
 }
 
 #stats {
-  background-color: #1e1e1e;
+  background-color: #354f52;
   color: white;
 }
 </style>

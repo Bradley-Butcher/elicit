@@ -3,10 +3,7 @@
     <h2 class="accordion-header">
       <button
         class="accordion-button"
-        :class="[
-          { collapsed: active == false },
-          { answered: status && status != 'null' },
-        ]"
+        :class="[{ collapsed: active == false }]"
         type="button"
         :data-bs-toggle="target"
         data-bs-target="#collapse"
@@ -15,17 +12,20 @@
         @click="emit_click"
       >
         <slot> </slot>
-        <div class="options ms-auto" style="width: 80px">
-          <i
-            @click.stop="send_signal('correct')"
-            v-bind:class="{ selected_option: status == `correct` }"
-            class="fas fa-check fa-lg ms-auto"
-          ></i>
-          <i
-            @click.stop="send_signal('incorrect')"
-            v-bind:class="{ selected_option: status == `incorrect` }"
-            class="fas fa-times ms-auto"
-          ></i>
+        <div class="options ms-auto">
+          <v-card
+            class="p-1"
+            :class="{
+              answered: status && status != 'null',
+              unanswered: !status || status == 'null',
+            }"
+            :elevation="status ? 1 : 0"
+            outlined
+            tile
+            disabled
+          >
+            <div>validated</div>
+          </v-card>
         </div>
       </button>
     </h2>
@@ -81,8 +81,16 @@ export default {
   color: rgb(104, 211, 5);
 }
 
+.unanswered {
+  background-color: #ffffff;
+  color: #000000;
+  text-decoration: line-through;
+}
+
 .answered {
-  background-color: rgba(161, 163, 159, 0.185);
+  background-color: #4caf50;
+  color: #150000;
+  text-decoration: none;
 }
 
 .accordion-button:not(.collapsed)::after {
@@ -97,7 +105,7 @@ export default {
 }
 
 .accordion-button:not(.collapsed) {
-  background-color: #1e1e1e;
+  background-color: #2f3e46;
   color: white;
 }
 

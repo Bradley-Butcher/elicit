@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS extraction (
     wider_context TEXT,
     variable_id INTEGER,
     document_id INTEGER,
+    valid TEXT DEFAULT NULL,
     CONSTRAINT fk_variable
         FOREIGN KEY (variable_id)
         REFERENCES variable(variable_id)
@@ -26,8 +27,7 @@ CREATE TABLE IF NOT EXISTS variable (
 	variable_id INTEGER PRIMARY KEY,
 	variable_name TEXT NOT NULL,
 	variable_value TEXT NOT NULL,
-	human_response TEXT,
-    confidence TEXT,
+    value_confidence TEXT,
     document_id INTEGER,
     CONSTRAINT fk_document
         FOREIGN KEY (document_id)

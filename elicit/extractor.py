@@ -9,7 +9,7 @@ from typing import Callable, List, Optional, Set, Type, Union
 from pathlib import Path
 
 import yaml
-from elicit.interface import ElicitLogger, LabellingFunctionBase
+from elicit.interface import ElicitLogger, Extraction, LabellingFunctionBase
 
 from elicit.utils.loading import load_document
 

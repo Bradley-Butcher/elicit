@@ -53,7 +53,13 @@ export default {
           flat
           tile
           class="lighten-1 white--text text-center"
-          style="height: 64px; position: fixed; bottom: 0; width: 100%"
+          style="
+            height: 64px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: #2f3e46;
+          "
         >
           <v-card-text class="white--text">
             {{ new Date().getFullYear() }} —

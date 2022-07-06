@@ -1,5 +1,5 @@
 <template>
-  <div class="ma-0 pa-0">
+  <div class="ma-0 pa-0 ml-2">
     <v-tabs background-color="#FFF" color="black" show-arrows full-width>
       <v-tab
         :class="{
