@@ -17,7 +17,7 @@ def server():
     app.config["DEBUG"] = False
     with app.test_client() as client:
         yield client
-    db_path.unlink()
+    db_path.unlink(missing_ok=True)
 
 
 def test_download_data(server):

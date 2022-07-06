@@ -69,6 +69,5 @@ def extract_answers(document_text: str, questions: List[str], qna_model: Pipelin
     for q in questions:
         qs = split_question(question=q, context=document_text)
         question_input.extend(qs)
-    print(question_input)
     res = qna_model(question_input, top_k=topk)
     return _filter_candidates(res, threshold=threshold)

@@ -37,6 +37,7 @@ class ExampleLabellingFunction(CategoricalLabellingFunction):
 @pytest.yield_fixture(scope='session')
 def extractor():
     test_db_path = Path(__file__).parent / "test_db.sqlite"
+    test_db_path.unlink(missing_ok=True)
     schema_path = Path(__file__).parent / "test_schema"
     document_path = Path(__file__).parent / "test_documents"
 
@@ -47,7 +48,7 @@ def extractor():
     extractor.register_labelling_function(ExampleLabellingFunction)
     extractor.run(list(document_path.glob("*.txt")))
     yield extractor
-    test_db_path.unlink()
+    test_db_path.unlink(missing_ok=True)
 
 
 def test_extractor_registers_schemas(extractor):
@@ -79,7 +80,7 @@ def test_all_docs_in_db(extractor):
 
 def test_extractions_are_populated(extractor):
     assert extractor.logger.db.execute(
-        "SELECT COUNT(*) FROM extraction").fetchone()[0] == 2
+        "SELECT COUNT(*) FROM extraction").fetchone()[0] == 14
 
 
 def test_loading(extractor):

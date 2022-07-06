@@ -11,15 +11,15 @@ def db():
     db_path = database()
     db = connect_db(db_path)
     yield db
-    db_path.unlink()
+    db_path.unlink(missing_ok=True)
 
 
 def test_set_confidence(db):
     set_confidence(db, 0, 0.5)
-    assert float(query_db(db, "SELECT confidence FROM variable WHERE variable_id=0")[
+    assert float(query_db(db, "SELECT value_confidence FROM variable WHERE variable_id=0")[
         0][0]) == 0.5
     set_confidence(db, 0, 0.6)
-    assert float(query_db(db, "SELECT confidence FROM variable WHERE variable_id=0")[
+    assert float(query_db(db, "SELECT value_confidence FROM variable WHERE variable_id=0")[
         0][0]) == 0.6
 
 
@@ -30,9 +30,9 @@ def test_get_data(db):
 
 def test_get_variable_data(db):
     df = get_data(db, "var_0")
-    X, y = get_variable_data(df, training=False, include_value=False)
+    _, X, y = get_variable_data(df, training=False, include_value=False)
     assert len(X.columns) == 3
-    X, y = get_variable_data(df, training=False, include_value=True)
+    _, X, y = get_variable_data(df, training=False, include_value=True)
     assert len(X.columns) == 6
 
 
