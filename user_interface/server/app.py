@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from database.db_utils import connect_db, query_db
-from user_interface.server.classifier import get_confidence
+from user_interface.server.sorting import update_confidence
 
 import click
 
