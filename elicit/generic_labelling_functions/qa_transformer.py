@@ -41,7 +41,7 @@ def _filter_candidates(answers: List[dict], threshold: float = 0.5) -> str:
 
 def split_question(question: str, context: str, max_length: int = 512) -> Tuple[List[dict[str, str]], int]:
     if len(context) < max_length:
-        return {"question": question, "context": context}, 1
+        return [{"question": question, "context": context}]
     else:
         contexts = []
         while len(context) > max_length:
