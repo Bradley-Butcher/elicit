@@ -50,7 +50,7 @@ export default {
     },
     sort_var_data(variable_data, extracted_data) {
       for (let i = 0; i < variable_data.length; i++) {
-        if (variable_data[i].confidence == null) {
+        if (variable_data[i].value_confidence == null) {
           variable_data[i].temp_confidence = this.get_total_confidence(
             extracted_data,
             variable_data[i].variable_id
@@ -59,9 +59,9 @@ export default {
       }
       // sort by confidence, then by temp_confidence, then by variable_name
       variable_data.sort((a, b) =>
-        a.confidence < b.confidence
+        a.value_confidence < b.value_confidence
           ? 1
-          : a.confidence === b.confidence
+          : a.value_confidence === b.value_confidence
           ? a.temp_confidence < b.temp_confidence
             ? 1
             : a.temp_confidence === b.temp_confidence ||
@@ -174,12 +174,12 @@ export default {
       return total_count;
     },
     get_confidence(var_data, input_data, variable_id) {
-      if (!var_data.confidence) {
+      if (!var_data.value_confidence) {
         return this.get_agreement(input_data, variable_id);
       } else {
         return (
           "Confidence: " +
-          Number(Number(var_data.confidence * 100).toPrecision(4)) +
+          Number(Number(var_data.value_confidence * 100).toPrecision(4)) +
           "%"
         );
       }

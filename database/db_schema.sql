@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS variable (
 	variable_id INTEGER PRIMARY KEY,
 	variable_name TEXT NOT NULL,
 	variable_value TEXT NOT NULL,
-    confidence TEXT,
+    value_confidence TEXT,
     document_id INTEGER,
     CONSTRAINT fk_document
         FOREIGN KEY (document_id)

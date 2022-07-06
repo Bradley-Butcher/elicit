@@ -41,7 +41,7 @@ def _filter_candidates(answers: List[dict], threshold: float = 0.5) -> str:
 
 def split_question(question: str, context: str, max_length: int = 512) -> Tuple[List[dict[str, str]], int]:
     if len(context) < max_length:
-        return {"question": question, "context": context}, 1
+        return [{"question": question, "context": context}]
     else:
         contexts = []
         while len(context) > max_length:
@@ -69,5 +69,6 @@ def extract_answers(document_text: str, questions: List[str], qna_model: Pipelin
     for q in questions:
         qs = split_question(question=q, context=document_text)
         question_input.extend(qs)
+    print(question_input)
     res = qna_model(question_input, top_k=topk)
     return _filter_candidates(res, threshold=threshold)
