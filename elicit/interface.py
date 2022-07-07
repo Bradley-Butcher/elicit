@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 from dataclasses import dataclass
+from numpy import var
 
 from spacy.language import Language
 
@@ -103,6 +104,45 @@ class ElicitLogger:
         self._push_evidence(doc_id, var_id, extraction, method)
         self.db.commit()
 
+    def get_validated_document_names(self, variable: str, include_negative: bool) -> List[str]:
+        """
+        Get the list of documents which have the given variable.
+        :param variable: The variable to check.
+        :return: The list of documents.
+        """
+        cond = "= 'TRUE'" if not include_negative else "IS NOT NULL"
+        results = self.db.execute(
+            f"""
+                SELECT document.document_name FROM extraction 
+                LEFT JOIN variable
+                ON extraction.variable_id = variable.variable_id 
+                LEFT JOIN document 
+                ON document.document_id = variable.document_id  
+                WHERE extraction.valid {cond} AND variable.variable_name = ?
+            """, (variable,)).fetchall()
+        return [result[0] for result in results]
+
+    def get_validated_extractions(self, document_names: List[str], variable: str, include_negative: bool):
+        """
+        Get the list of validated extractions for the given document and variable.
+
+        :param document_names: The list of documents to check.
+        :param variable: The variable to check.
+
+        :return: The list of extractions.
+        """
+        cond = "= 'TRUE'" if not include_negative else "IS NOT NULL"
+        cursor = self.db.execute(
+            f"""
+                SELECT DISTINCT document.document_name, variable.variable_value, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, extraction.valid FROM extraction 
+                LEFT JOIN variable
+                ON extraction.variable_id = variable.variable_id 
+                LEFT JOIN document 
+                ON document.document_id = variable.document_id  
+                WHERE extraction.valid {cond} AND variable.variable_name = '{variable}'
+            """)
+        return [Extraction(row[1], row[2], row[3], row[4], row[5], row[6]) for row in cursor if row[0] in document_names]
+
 
 class LabellingFunctionBase(ABC):
 
@@ -179,7 +219,7 @@ class LabellingFunctionBase(ABC):
         return "categorical"
 
     @abstractmethod
-    def train(self, document_name: str, variable_name: str, extraction: "Extraction"):
+    def train(self, variable_name: str, extractions: List["Extraction"]):
         """Train the labelling function."""
         pass
 
@@ -195,7 +235,7 @@ class CategoricalLabellingFunction(LabellingFunctionBase):
         super().__init__(schemas, logger)
 
     @abstractmethod
-    def train(self, document_name: str, variable_name: str, extraction: "Extraction"):
+    def train(self, variable_name: str, extractions: List["Extraction"]):
         """Train the labelling function."""
         pass
 
@@ -228,7 +268,7 @@ class NumericalLabellingFunction(LabellingFunctionBase):
         super().__init__(schemas, logger)
 
     @abstractmethod
-    def train(self, document_name: str, variable_name: str, extraction: "Extraction"):
+    def train(self, variable_name: str, extractions: List["Extraction"]):
         """Train the labelling function."""
         pass
 
@@ -261,7 +301,7 @@ class RawLabellingFunction(LabellingFunctionBase):
         super().__init__(schemas, logger)
 
     @abstractmethod
-    def train(self, document_name: str, variable_name: str, extraction: "Extraction"):
+    def train(self, variable_name: str, extractions: List["Extraction"]):
         """Train the labelling function."""
         pass
 
@@ -290,6 +330,7 @@ class Extraction:
     local_context: str
     wider_context: str
     confidence: float
+    valid: bool
 
     @staticmethod
     def sanitize(string: str) -> str:
@@ -301,12 +342,12 @@ class Extraction:
     @classmethod
     def abstain(cls, confidence: float = 0) -> "Extraction":
         """Abstains, providing no evidence"""
-        return cls("ABSTAIN", None, None, None, confidence)
+        return cls("ABSTAIN", None, None, None, confidence, None)
 
     @classmethod
     def not_present(cls, value: str):
         """Not present, providing no evidence"""
-        return cls(value, None, None, None, 0)
+        return cls(value, None, None, None, 0, None)
 
     @classmethod
     def from_character_startend(cls, doc: str, value: str, confidence: float, start: int, end: int, local_padding: int = 100, wider_padding: int = 500, max_chars: int = 100) -> "Extraction":
@@ -332,7 +373,7 @@ class Extraction:
         exact_context = cls.sanitize(exact_context)
         local_context = cls.sanitize(local_context)
         wider_context = cls.sanitize(wider_context)
-        return cls(value, exact_context, local_context, wider_context, confidence)
+        return cls(value, exact_context, local_context, wider_context, confidence, None)
 
     @classmethod
     def from_string(cls, string: str, value: str, confidence: float, exact_chars: int = 100, local_padding: int = 100, wider_padding: int = 500) -> "Extraction":
@@ -357,7 +398,7 @@ class Extraction:
         exact_context = cls.sanitize(exact_context)
         local_context = cls.sanitize(local_context)
         wider_context = cls.sanitize(wider_context)
-        return cls(value, exact_context, local_context, wider_context, confidence)
+        return cls(value, exact_context, local_context, wider_context, confidence, None)
 
     @classmethod
     def from_spacy(cls, doc: Language, value: str, confidence: float, start: int, end: int, local_padding: int = 0, wider_padding: int = 10) -> "Extraction":
@@ -382,7 +423,7 @@ class Extraction:
         exact_context = cls.sanitize(exact_context.text)
         local_context = cls.sanitize(local_context.text)
         wider_context = cls.sanitize(wider_context.text)
-        return cls(value, exact_context, local_context, wider_context, confidence)
+        return cls(value, exact_context, local_context, wider_context, confidence, None)
 
     @classmethod
     def from_spacy_multiple(cls, doc: Language, value: str, confidence: float, evidence_list: List[Tuple[str, int, int]], wider_padding: int = 20) -> "Extraction":
@@ -404,4 +445,4 @@ class Extraction:
         wider_context = " | ".join(widers)
         local_context = cls.sanitize(local_context)
         wider_context = cls.sanitize(wider_context)
-        return cls(value, local_context, local_context, wider_context, confidence)
+        return cls(value, local_context, local_context, wider_context, confidence, None)

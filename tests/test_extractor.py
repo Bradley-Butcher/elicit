@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import List
 
 import pytest
 
@@ -17,14 +18,17 @@ class ExampleLabellingFunction(CategoricalLabellingFunction):
         for k, kws in kw_dicts.items():
             for kw in kws:
                 if kw in document_text:
-                    exts.append(Extraction(k, kw, kw, kw, 1))
+                    exts.append(Extraction(
+                        k, kw, document_text, document_text, 1, None))
         self.push_many(
             document_name=document_name,
             variable_name=variable_name,
             extraction_list=exts)
 
-    def train(self, document_name: str, variable_name: str, extraction: Extraction):
-        pass
+    def train(self, variable_name: str, extractions: List["Extraction"]):
+        for extraction in extractions:
+            self.schemas["keywords"][variable_name][extraction.value].append(
+                extraction.local_context.split(" ")[-1])
 
     def load(self) -> None:
         self.model = "test_model"
@@ -47,6 +51,12 @@ def extractor():
     extractor.register_schema(schema_path / "test_keywords.yml", "keywords")
     extractor.register_labelling_function(ExampleLabellingFunction)
     extractor.run(list(document_path.glob("*.txt")))
+    # put a few valids in the db
+    extractor.logger.db.execute(
+        "UPDATE extraction SET valid='TRUE' WHERE local_context IS NOT NULL")
+    extractor.logger.db.commit()
+
+    extractor.train()
     yield extractor
     test_db_path.unlink(missing_ok=True)
 
@@ -85,3 +95,8 @@ def test_extractions_are_populated(extractor):
 
 def test_loading(extractor):
     assert extractor.lfs[0].model == "test_model"
+
+
+def test_training(extractor):
+    assert "Hello." in extractor.schemas["keywords"]["variable1"]["cat1"]
+    assert "Goodbye." in extractor.schemas["keywords"]["variable2"]["cat2"]
