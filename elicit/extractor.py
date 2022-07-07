@@ -7,6 +7,7 @@ import functools
 from typing import Callable, List, Optional, Set, Type, Union
 
 from pathlib import Path
+from unittest.util import strclass
 
 import yaml
 from elicit.interface import ElicitLogger, Extraction, LabellingFunctionBase
@@ -96,3 +97,33 @@ class Extractor:
                     lf_obj.extract(doc.stem, variable, text)
             # free up memory from models and stuff
             del lf_obj
+
+    def get_validated_documents(self, variable: str, include_negatives: bool) -> List[Path]:
+        document_names = self.logger.get_validated_document_names(
+            variable, include_negatives)
+        print(
+            f"{len(document_names)} documents with validations for variable: {variable}")
+        return document_names
+
+    def get_extractions(self, document_names: List[str], variable: str, include_negatives: bool) -> List[Extraction]:
+        extractions = self.logger.get_validated_extractions(
+            document_names, variable, include_negatives)
+        return extractions
+
+    def train(self, include_negatives: bool = False) -> None:
+        lf_obj: Type[LabellingFunctionBase]
+        for lf_obj in self.lfs:
+            for variable in self.variables:
+                print(
+                    f"Training LF: {lf_obj.labelling_method} on variable: {variable}")
+                if not lf_obj.type == self._var_type(variable):
+                    continue
+                validated_documents = self.get_validated_documents(
+                    variable, include_negatives)
+                extraction_set = self.get_extractions(
+                    validated_documents, variable, include_negatives)
+                if len(extraction_set) == 0:
+                    print(
+                        f"No extractions for variable: {variable}")
+                    continue
+                lf_obj.train(variable, extraction_set)
