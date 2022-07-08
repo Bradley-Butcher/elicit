@@ -4,12 +4,14 @@
 import CaseButton from "./CaseButton.vue";
 import ContextModal from "./ContextModal.vue";
 import axios from "axios";
+import TrainingDialog from "./TrainingDialog.vue";
 
 export default {
   name: "Extractions",
   components: {
     CaseButton,
     ContextModal,
+    TrainingDialog,
   },
   data() {
     return {
@@ -22,6 +24,9 @@ export default {
       toast_text: "",
       toast_title: "",
       renderComponent: true,
+      explaination_modal: false,
+      explaining_context: "",
+      clicked_extraction: {},
     };
   },
   props: {
@@ -31,6 +36,10 @@ export default {
     },
     variable_data: {
       type: Array,
+      required: true,
+    },
+    training_state: {
+      type: Boolean,
       required: true,
     },
   },
@@ -187,6 +196,12 @@ export default {
     get_best_evidence(item) {
       //Change to use some "best evidence variable" and "exact context "
       const ev = this.format_evidence(this.extracted_data, item.variable_id);
+      // if any have a validated context, return that
+      for (const i in ev) {
+        if (ev[i].validated_context && ev[i].valid == "TRUE") {
+          return '"' + ev[i].validated_context + '"';
+        }
+      }
       const best_ev = ev.sort((a, b) => {
         return b.confidence - a.confidence;
       })[0];
@@ -200,6 +215,9 @@ export default {
     },
     add_mark(evidence) {
       // replace text substr with <mark>substr</mark>
+      if (evidence.valid == "TRUE" && evidence.validated_context) {
+        return "<mark>" + evidence.validated_context + "</mark>";
+      }
       if (!evidence.exact_context) {
         return "No Evidence";
       }
@@ -239,6 +257,43 @@ export default {
           this.variable +
           "</strong></span>"
       );
+      if (
+        this.training_state &&
+        extraction.valid != null &&
+        extraction.exact_context != null
+      ) {
+        this.explaination_modal = true;
+        this.explaining_context = extraction.local_context;
+        this.clicked_extraction = extraction;
+      }
+    },
+    expand_context() {
+      this.explaining_context = this.clicked_extraction.wider_context;
+    },
+    confirm_training_data(highlight) {
+      const path =
+        "http://127.0.0.1:5000/api/submit_explaination/" +
+        this.clicked_extraction.extraction_id +
+        "/" +
+        highlight;
+      axios
+        .get(path)
+        .then(() => {
+          this.explaination_modal = false;
+          // update extracted_data where extraction_id = this.clicked_extraction.extraction_id
+          for (const i in this.extracted_data) {
+            if (
+              this.extracted_data[i].extraction_id ==
+              this.clicked_extraction.extraction_id
+            ) {
+              this.extracted_data[i].validated_context = highlight;
+            }
+          }
+        })
+        .catch((error) => {
+          // eslint-disable-next-line
+          console.error(error);
+        });
     },
   },
 };
@@ -391,6 +446,13 @@ export default {
       :showModal="showModalNow"
       @closeModal="closeModalNow"
     ></ContextModal>
+    <TrainingDialog
+      :open="explaination_modal"
+      :context="explaining_context"
+      :initial_selection="clicked_extraction.exact_context"
+      @confirm="confirm_training_data"
+      @furtherContext="expand_context"
+    ></TrainingDialog>
   </div>
 </template>
 
