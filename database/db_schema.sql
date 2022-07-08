@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS extraction (
     exact_context TEXT,
     local_context TEXT,
     wider_context TEXT,
+    validated_context TEXT,
     variable_id INTEGER,
     document_id INTEGER,
     valid TEXT DEFAULT NULL,

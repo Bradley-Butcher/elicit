@@ -88,6 +88,15 @@ def create_app(db_path: Path, test_config=None):
         db.commit()
         return "OK"
 
+    @app.route('/api/submit_explaination/<extraction_id>/<explaination>', methods=['POST', 'GET'])
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
+    def submit_explaination(extraction_id: int, explaination: str):
+        db = get_db()
+        query_db(db,
+                 f"UPDATE extraction SET validated_context='{explaination}' WHERE extraction_id={extraction_id}")
+        db.commit()
+        return "OK"
+
     @app.route('/api/download_data/', methods=['GET'])
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
     def download_data():

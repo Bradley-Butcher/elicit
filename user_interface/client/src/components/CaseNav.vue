@@ -16,6 +16,7 @@
     <AltCase
       :variable="active_variable"
       :variable_data="active_variable_data"
+      :training_state="training_state"
       @reload_variable="getMessage"
     />
   </div>
@@ -27,7 +28,7 @@ import AltCase from "./AltCase.vue";
 
 export default {
   name: "CaseNav",
-  props: ["current_case", "refresh_case"],
+  props: ["current_case", "refresh_case", "training_state"],
   components: {
     AltCase,
   },

@@ -1,17 +1,20 @@
 <script>
 import CaseNav from "../components/CaseNav.vue";
 import CaseMenu from "../components/CaseMenu.vue";
+import ControlPanel from "../components/ControlPanel.vue";
 
 export default {
   name: "DocumentView",
   components: {
     CaseNav,
     CaseMenu,
+    ControlPanel,
   },
   data() {
     return {
       active_case: this.$route.params.id,
       refresh_case: 0,
+      training_state: false,
     };
   },
   methods: {
@@ -75,6 +78,9 @@ export default {
         this.active_case = this.document_display_list[idx - 1].case_id;
       }
     },
+    training(state) {
+      this.training_state = state;
+    },
   },
   props: {
     sidebar: {
@@ -112,6 +118,7 @@ export default {
               id="case_area"
               :current_case="$route.params.id"
               :refresh_case="refresh_case"
+              :training_state="training_state"
               style="max-width: 100%"
             /> </v-col
           ><v-divider
@@ -157,19 +164,12 @@ export default {
             <v-divider class="ma-0 pa-0"></v-divider>
             <v-row id="controlpanel" class="ma-0 pa-0 temp" style="height: 30%">
               <v-col align="center">
-                <h5 class="ma-2 pa-2">Document: {{ active_case }}</h5>
-                <v-row>
-                  <v-col align="center">
-                    <v-btn tile depressed @click="getPrevDocument" width="40px">
-                      <v-icon right dark raised class="me-2">
-                        mdi-arrow-left-bold
-                      </v-icon>
-                    </v-btn>
-                    <v-btn tile depressed @click="getNextDocument" width="40px">
-                      <v-icon right dark raised> mdi-arrow-right-bold </v-icon>
-                    </v-btn>
-                  </v-col>
-                </v-row>
+                <ControlPanel
+                  :active_case="active_case"
+                  @signalPrev="getPrevDocument"
+                  @signalNext="getNextDocument"
+                  @signalTraining="training"
+                ></ControlPanel>
               </v-col>
             </v-row>
           </v-col>
