@@ -1,4 +1,5 @@
-
+**Note:** 
+Currently pre-alpha. First release expected 01/08/2022.
 
 <p align="center">
 <img src="user_interface/client/src/assets/elecit.png" alt="drawing" width="300"/>
