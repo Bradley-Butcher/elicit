@@ -6,6 +6,7 @@
 """
 from abc import ABC, abstractmethod
 from pathlib import Path
+from sqlite3 import IntegrityError
 from typing import List, Optional, Tuple, Union
 from dataclasses import dataclass
 from numpy import var
@@ -27,6 +28,9 @@ class ElicitLogger:
         self.db_path = db_path
         self.db = connect_db(db_path)
         print(f"Connected to Extraction Database: {db_path}")
+
+    def doc_in(self, document_name: str) -> bool:
+        return get_doc_id(self.db, document_name) >= 0
 
     def _get_doc(self, document_name: str) -> int:
         doc_id = get_doc_id(self.db, document_name)
@@ -73,8 +77,15 @@ class ElicitLogger:
         """
         next_extraction_id = self._get_extraction(
             document_id, variable_id, method)
-        self.db.execute(
-            "INSERT INTO extraction (extraction_id, method, exact_context, local_context, wider_context, confidence, variable_id, document_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (next_extraction_id, method, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, variable_id, document_id))
+        try:
+            self.db.execute(
+                "INSERT INTO extraction (extraction_id, method, exact_context, local_context, wider_context, confidence, variable_id, document_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (next_extraction_id, method, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, variable_id, document_id))
+        except IntegrityError:
+            # set valid value
+            if self.db.execute("SELECT valid from extraction where extraction_id = ?", (next_extraction_id,)).fetchone()[0] == 'TRUE':
+                return
+            self.db.execute(
+                "UPDATE extraction SET method = ?, exact_context = ?, local_context = ?, wider_context = ?, confidence = ?, alert = ? WHERE extraction_id = ?", (method, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, 'TRUE', next_extraction_id))
 
     def push_variable(self, document_name: str, variable_name: str, variable_value: str) -> None:
         """
@@ -134,14 +145,14 @@ class ElicitLogger:
         cond = "= 'TRUE'" if not include_negative else "IS NOT NULL"
         cursor = self.db.execute(
             f"""
-                SELECT DISTINCT document.document_name, variable.variable_value, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, extraction.valid FROM extraction 
+                SELECT DISTINCT document.document_name, variable.variable_value, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, extraction.valid, extraction.validated_context FROM extraction 
                 LEFT JOIN variable
                 ON extraction.variable_id = variable.variable_id 
                 LEFT JOIN document 
                 ON document.document_id = variable.document_id  
                 WHERE extraction.valid {cond} AND variable.variable_name = '{variable}'
             """)
-        return [Extraction(row[1], row[2], row[3], row[4], row[5], row[6]) for row in cursor if row[0] in document_names]
+        return [Extraction(row[1], row[2], row[3], row[4], row[5], row[6], row[7]) for row in cursor if row[0] in document_names]
 
 
 class LabellingFunctionBase(ABC):
@@ -150,9 +161,10 @@ class LabellingFunctionBase(ABC):
         """Initialize the labelling function."""
         self.schemas = {k: v for k, v in schemas.items()}
         self.logger = logger
+        self.loaded = False
 
     @abstractmethod
-    def load(self) -> None:
+    def load(self, model_directory: Path, device: Union[int, str]) -> None:
         """
         Load whatever is required for the labelling function,
         e.g. wordlist, model, etc.
@@ -219,7 +231,7 @@ class LabellingFunctionBase(ABC):
         return "categorical"
 
     @abstractmethod
-    def train(self, variable_name: str, extractions: List["Extraction"]):
+    def train(self, data: dict[str, List["Extraction"]]):
         """Train the labelling function."""
         pass
 
@@ -235,12 +247,12 @@ class CategoricalLabellingFunction(LabellingFunctionBase):
         super().__init__(schemas, logger)
 
     @abstractmethod
-    def train(self, variable_name: str, extractions: List["Extraction"]):
+    def train(self, data: dict[str, List["Extraction"]]):
         """Train the labelling function."""
         pass
 
     @abstractmethod
-    def load(self) -> None:
+    def load(self, model_directory: Path, device: Union[int, str]) -> None:
         """
         Load whatever is required for the labelling function,
         e.g. wordlist, model, etc.
@@ -268,12 +280,12 @@ class NumericalLabellingFunction(LabellingFunctionBase):
         super().__init__(schemas, logger)
 
     @abstractmethod
-    def train(self, variable_name: str, extractions: List["Extraction"]):
+    def train(self, data: dict[str, List["Extraction"]]):
         """Train the labelling function."""
         pass
 
     @abstractmethod
-    def load(self) -> None:
+    def load(self, model_directory: Path, device: Union[int, str]) -> None:
         """
         Load whatever is required for the labelling function,
         e.g. wordlist, model, etc.
@@ -301,7 +313,15 @@ class RawLabellingFunction(LabellingFunctionBase):
         super().__init__(schemas, logger)
 
     @abstractmethod
-    def train(self, variable_name: str, extractions: List["Extraction"]):
+    def load(self, model_directory: Path, device: Union[int, str]) -> None:
+        """
+        Load whatever is required for the labelling function,
+        e.g. wordlist, model, etc.
+        """
+        pass
+
+    @abstractmethod
+    def train(self, data: dict[str, List["Extraction"]]):
         """Train the labelling function."""
         pass
 
@@ -331,6 +351,7 @@ class Extraction:
     wider_context: str
     confidence: float
     valid: bool
+    validated_context: str
 
     @staticmethod
     def sanitize(string: str) -> str:
@@ -342,12 +363,12 @@ class Extraction:
     @classmethod
     def abstain(cls, confidence: float = 0) -> "Extraction":
         """Abstains, providing no evidence"""
-        return cls("ABSTAIN", None, None, None, confidence, None)
+        return cls("ABSTAIN", None, None, None, confidence, None, None)
 
     @classmethod
     def not_present(cls, value: str):
         """Not present, providing no evidence"""
-        return cls(value, None, None, None, 0, None)
+        return cls(value, None, None, None, 0, None, None)
 
     @classmethod
     def from_character_startend(cls, doc: str, value: str, confidence: float, start: int, end: int, local_padding: int = 100, wider_padding: int = 500, max_chars: int = 100) -> "Extraction":
@@ -373,7 +394,7 @@ class Extraction:
         exact_context = cls.sanitize(exact_context)
         local_context = cls.sanitize(local_context)
         wider_context = cls.sanitize(wider_context)
-        return cls(value, exact_context, local_context, wider_context, confidence, None)
+        return cls(value, exact_context, local_context, wider_context, confidence, None, None)
 
     @classmethod
     def from_string(cls, string: str, value: str, confidence: float, exact_chars: int = 100, local_padding: int = 100, wider_padding: int = 500) -> "Extraction":
@@ -398,7 +419,7 @@ class Extraction:
         exact_context = cls.sanitize(exact_context)
         local_context = cls.sanitize(local_context)
         wider_context = cls.sanitize(wider_context)
-        return cls(value, exact_context, local_context, wider_context, confidence, None)
+        return cls(value, exact_context, local_context, wider_context, confidence, None, None)
 
     @classmethod
     def from_spacy(cls, doc: Language, value: str, confidence: float, start: int, end: int, local_padding: int = 0, wider_padding: int = 10) -> "Extraction":
@@ -423,7 +444,7 @@ class Extraction:
         exact_context = cls.sanitize(exact_context.text)
         local_context = cls.sanitize(local_context.text)
         wider_context = cls.sanitize(wider_context.text)
-        return cls(value, exact_context, local_context, wider_context, confidence, None)
+        return cls(value, exact_context, local_context, wider_context, confidence, None, None)
 
     @classmethod
     def from_spacy_multiple(cls, doc: Language, value: str, confidence: float, evidence_list: List[Tuple[str, int, int]], wider_padding: int = 20) -> "Extraction":
@@ -445,4 +466,4 @@ class Extraction:
         wider_context = " | ".join(widers)
         local_context = cls.sanitize(local_context)
         wider_context = cls.sanitize(wider_context)
-        return cls(value, local_context, local_context, wider_context, confidence, None)
+        return cls(value, local_context, local_context, wider_context, confidence, None, None)

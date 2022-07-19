@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS extraction (
     variable_id INTEGER,
     document_id INTEGER,
     valid TEXT DEFAULT NULL,
+    alert TEXT DEFAULT NULL,
     CONSTRAINT fk_variable
         FOREIGN KEY (variable_id)
         REFERENCES variable(variable_id)

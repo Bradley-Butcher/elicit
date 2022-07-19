@@ -58,8 +58,9 @@ class KeywordMatchLF(CategoricalLabellingFunction):
     def labelling_method(self):
         return "Keyword Match"
 
-    def train(self, doc: str, extraction: Extraction):
+    def train(self, data: dict[str, List["Extraction"]]):
         pass
 
-    def load(self):
+    def load(self, model_path: Path, device: str):
+        self.loaded = True
         pass

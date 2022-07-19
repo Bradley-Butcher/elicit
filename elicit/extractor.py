@@ -18,8 +18,11 @@ from tqdm import tqdm
 
 
 class Extractor:
-    def __init__(self, db_path: Path):
+    def __init__(self, db_path: Path, model_path: Path = Path(__file__).parent / "models", device: int = -1):
         self.logger = ElicitLogger(db_path)
+        self.model_path = model_path
+        model_path.mkdir(parents=True, exist_ok=True)
+        self.device = device
         self.lfs = []
         self.schemas = {}
 
@@ -46,12 +49,6 @@ class Extractor:
         self.lfs.append(obj)
         print(f"Registered labelling function: {obj.labelling_method}")
 
-    def _handle_loading(self):
-        print("Handling LF loading")
-        for lf_obj in self.lfs:
-            print(f"Loading LF: {lf_obj.labelling_method}")
-            lf_obj.load()
-
     @property
     def variables(self) -> List[str]:
         """Get list of variables from the categories schema, ValueError if category schema isn't loaded."""
@@ -62,6 +59,8 @@ class Extractor:
 
     def _prepare_db(self, documents) -> None:
         for doc in documents:
+            if self.logger.doc_in(doc.stem):
+                continue
             for variable in self.variables:
                 for value in self.schemas["categories"][variable]:
                     self.logger.push_variable(doc.stem, variable, value)
@@ -84,8 +83,8 @@ class Extractor:
         lf_obj: Type[LabellingFunctionBase]
         for lf_obj in self.lfs:
             print(f"Running LF: {lf_obj.labelling_method}")
-            print("Loading models and stuff...")
-            lf_obj.load()
+            print("Loading Resources.")
+            lf_obj.load(self.model_path, self.device)
             pbar = tqdm(documents)
             for doc in pbar:
                 text = load_document(doc)
@@ -113,6 +112,10 @@ class Extractor:
     def train(self, include_negatives: bool = False) -> None:
         lf_obj: Type[LabellingFunctionBase]
         for lf_obj in self.lfs:
+            if not lf_obj.loaded:
+                print(f"Loading Resources for LF: {lf_obj.labelling_method}")
+                lf_obj.load(self.model_path, self.device)
+            data = {}
             for variable in self.variables:
                 print(
                     f"Training LF: {lf_obj.labelling_method} on variable: {variable}")
@@ -126,4 +129,6 @@ class Extractor:
                     print(
                         f"No extractions for variable: {variable}")
                     continue
-                lf_obj.train(variable, extraction_set)
+                else:
+                    data[variable] = extraction_set
+            lf_obj.train(data)

@@ -1,38 +1,21 @@
 """Script which uses a Natural Language Inference transfomer model assign extracted Q&A pairs to provided categories."""
-import yaml
-from transformers import Pipeline, pipeline
+from datasets import load_metric
+import torch
+from torch.optim import AdamW
+from torch.nn import CrossEntropyLoss
+from transformers import MODEL_FOR_QUESTION_ANSWERING_MAPPING, Pipeline, RobertaForQuestionAnswering, RobertaTokenizer, RobertaTokenizerFast, get_linear_schedule_with_warmup, pipeline
+from transformers.modeling_outputs import QuestionAnsweringModelOutput
+
 from pathlib import Path
-from typing import DefaultDict, Dict, List, Tuple
-import re
+from typing import DefaultDict, Dict, List, Optional, Tuple, Union
 import warnings
 from elicit.interface import CategoricalLabellingFunction, Extraction
-
 from elicit.generic_labelling_functions.qa_transformer import extract_answers
+from elicit.utils.utils import QADataset
 
+from tqdm.auto import tqdm
 
 warnings.filterwarnings("ignore")
-
-
-# def extract_value(answers: List[Tuple[str, float, int, int]], doc: str, threshold: float) -> Union[DocumentField, List[DocumentField]]:
-#     """
-#     Extract numerical value from the output Q&A Transformer, only used if variable category is assigned as "continuous".
-
-#     :param answers: List of answers from Q&A Transformer.
-#     :param doc: Document string.
-#     :param threshold: Threshold for the Q&A Transformer. Only answers above this threshold are considered.
-
-#     :return: Either CaseField object with the extracted value, or a list of CaseField objects with the extracted values. Depending on the number of valid answers.
-#     """
-#     values = [(re.findall(r'\d+', answer)[0], score, start, end)
-#               for answer, score, start, end in answers if score > threshold and re.findall(r'\d+', answer)]
-#     if not values:
-#         return DocumentField(value="unknown", confidence=0, evidence=Extraction.abstain())
-#     values, context = compress(values)
-#     output = [DocumentField(value=k, confidence=v, evidence=Extraction.from_character_startend(
-#         doc, context[k]["start"], context[k]["end"])) for k, v in values.items()]
-#     if len(output) == 1:
-#         return output[0]
-#     return output
 
 
 def compress(candidates: List[Tuple[str, float, int, int]]) -> Dict[str, float]:
@@ -106,76 +89,78 @@ def match_classify(answers: List[Tuple[str, float]], document_text: str, levels:
         return extractions
 
 
-# def extract_top(answers: List[Tuple[str, float, int, int]], doc: str) -> List[DocumentField]:
-#     """
-#     Extract top answer from Q&A Transformer. This is used if variable category is assigned as "raw".
+class RobertaForQuestionAnsweringWithNegatives(RobertaForQuestionAnswering):
+    """
+    RobertaForQuestionAnswering with a negative class.
+    """
 
-#     :param answers: List of answers from Q&A Transformer.
-#     :param doc: Document string.
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-#     :return: List of CaseField objects with the extracted values.
-#     """
-#     if not answers:
-#         return DocumentField(value="unknown", confidence=0, evidence=Extraction.abstain())
-#     answers, context = compress(answers)
-#     return [DocumentField(value=k, confidence=v, evidence=Extraction.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in answers.items()]
+    def forward(
+        self,
+        input_ids: Optional[torch.LongTensor] = None,
+        attention_mask: Optional[torch.FloatTensor] = None,
+        token_type_ids: Optional[torch.LongTensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        head_mask: Optional[torch.FloatTensor] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        start_positions: Optional[torch.LongTensor] = None,
+        end_positions: Optional[torch.LongTensor] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
+    ):
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
+        outputs = self.roberta(
+            input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+        )
 
-# def process_answers(answers: Dict[str, Tuple[str, float, int, int]], doc: str, categories_schema: Path, threshold: float = 0.7) -> Dict[str, List[str]]:
-#     """
-#     Process the answers from the Q&A Transformer.
-#     Assigns Categorical variables to provided categories, extracts numerical values for continuous variables, and extracts top answers for raw variables.
+        sequence_output = outputs[0]
 
-#     :param answers: Dictionary of answers from Q&A Transformer.
-#     :param doc: Document string.
-#     :param categories_schema: Path to the categories schema.
-#     :param threshold: Threshold for the Q&A Transformer. Only answers above this threshold are considered.
+        logits = self.qa_outputs(sequence_output)
+        start_logits, end_logits = logits.split(1, dim=-1)
+        start_logits = start_logits.squeeze(-1).contiguous()
+        end_logits = end_logits.squeeze(-1).contiguous()
 
-#     :return: Dictionary of answers and their values.
-#     """
-#     variables = load_schema(categories_schema)
-#     extracted_variables = {}
-#     for key in variables.keys():
-#         if variables[key] == "continuous":
-#             extracted_variables[key] = extract_value(
-#                 answers=answers[key], doc=doc, threshold=threshold)
-#         elif variables[key] == "raw":
-#             extracted_variables[key] = extract_top(
-#                 answers=answers[key], doc=doc)
-#         else:
-#             extracted_variables[key] = match_classify(
-#                 answers=answers[key], doc=doc, levels=variables[key], threshold=threshold)
-#     return extracted_variables
+        total_loss = None
+        if start_positions is not None and end_positions is not None:
+            # If we are on multi-GPU, split add a dimension
+            if len(start_positions.size()) > 1:
+                start_positions = start_positions.squeeze(-1)
+            if len(end_positions.size()) > 1:
+                end_positions = end_positions.squeeze(-1)
+            # sometimes the start/end positions are outside our model inputs, we ignore these terms
+            ignored_index = start_logits.size(1)
+            start_positions = start_positions.clamp(0, ignored_index)
+            end_positions = end_positions.clamp(0, ignored_index)
 
+            loss_fct = CrossEntropyLoss(ignore_index=ignored_index)
+            start_loss = loss_fct(start_logits, start_positions)
+            end_loss = loss_fct(end_logits, end_positions)
+            total_loss = (start_loss + end_loss) / 2
 
-# @labelling_function(labelling_method="NLI Transformer", required_schemas=["question_schema", "categories_schema"])
-# def nli_extraction(
-#     doc: str,
-#     document: Document,
-#     question_schema: Path,
-#     categories_schema: Path,
-#     match_threshold: float = 0.3,
-#     qa_threshold: float = 0.5,
-#     device=None
-# ) -> Document:
-#     """
-#     Task for using NLI to extract variables from a document.
+        if not return_dict:
+            output = (start_logits, end_logits) + outputs[2:]
+            return ((total_loss,) + output) if total_loss is not None else output
 
-#     :param doc: Document string.
-#     :param case: Case object to add extracted variables to.
-#     :param question_schema: Path to the question schema.
-#     :param categories_schema: Path to the categories schema.
-#     :param match_threshold: Threshold for the NLI Transformer. Only answers above this threshold are considered.
-#     :param qa_threshold: Threshold for the Q&A Transformer. Only answers above this threshold are considered.
+        return QuestionAnsweringModelOutput(
+            loss=total_loss,
+            start_logits=start_logits,
+            end_logits=end_logits,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions,
+        )
 
-#     :return: Case object with extracted variables.
-#     """
-#     answers = extract_answers(
-#         doc=doc, case=document, question_schema=question_schema, threshold=qa_threshold)
-#     answer_dict = process_answers(
-#         answers, doc=doc, categories_schema=categories_schema, threshold=match_threshold)
-#     document.add_dict(answer_dict)
-#     return document
 
 class NLILabellingFunction(CategoricalLabellingFunction):
     def __init__(self, schemas, logger, **kwargs):
@@ -183,14 +168,32 @@ class NLILabellingFunction(CategoricalLabellingFunction):
         self.match_threshold = 0.5
         self.qna_threshold = 0.3
 
-    def load(self) -> None:
+    def load(self, model_directory: Path, device: Union[int, str]) -> None:
+        self.device = device
+        self.model_directory = model_directory
         self.classifier = pipeline("zero-shot-classification",
-                                   model="facebook/bart-large-mnli", device=0)
-        self.qna_model = pipeline(
-            'question-answering',
-            model="deepset/roberta-base-squad2",
-            tokenizer="deepset/roberta-base-squad2", device=0
+                                   model="facebook/bart-large-mnli", device=self.device)
+        if (model_directory / "qna_model").exists():
+            print("Fine tuned Q&A model found, loading...")
+            MODEL_FOR_QUESTION_ANSWERING_MAPPING["neg_roberta"] = "RobertaForQuestionAnsweringWithNegatives"
+            self.qna_tokenizer = RobertaTokenizerFast.from_pretrained(
+                "deepset/roberta-base-squad2")
+            self.qna_model = RobertaForQuestionAnsweringWithNegatives.from_pretrained(
+                model_directory / "qna_model")
+        else:
+            print("No fine tuned Q&A model found, loading generic model...")
+            MODEL_FOR_QUESTION_ANSWERING_MAPPING["neg_roberta"] = "RobertaForQuestionAnsweringWithNegatives"
+            self.qna_tokenizer = RobertaTokenizerFast.from_pretrained(
+                "deepset/roberta-base-squad2")
+            self.qna_model = RobertaForQuestionAnsweringWithNegatives.from_pretrained(
+                "deepset/roberta-base-squad2")
+        self.qna_pipeline = pipeline(
+            task='question-answering',
+            model=self.qna_model,
+            tokenizer=self.qna_tokenizer,
+            device=device
         )
+        self.loaded = True
 
     def extract(self, document_name: str, variable_name: str, document_text: str) -> None:
         questions = self.get_schema("questions", variable_name)
@@ -199,7 +202,7 @@ class NLILabellingFunction(CategoricalLabellingFunction):
         answers = extract_answers(
             document_text,
             questions=questions,
-            qna_model=self.qna_model,
+            qna_model=self.qna_pipeline,
             threshold=self.qna_threshold
         )
         extractions = match_classify(
@@ -211,8 +214,39 @@ class NLILabellingFunction(CategoricalLabellingFunction):
             threshold=final_threshold)
         self.push_many(document_name, variable_name, extractions)
 
-    def train(self, document_name: str, variable_name: str, extraction: Extraction):
-        pass
+    def train(self, data: dict[str, List["Extraction"]]):
+        dataset = QADataset(data, self.get_schema(
+            "questions"), self.qna_tokenizer)
+        N = len(dataset)
+        train_set, val_set = torch.utils.data.random_split(
+            dataset, [N - (N // 10), N // 10])
+        train_loader = torch.utils.data.DataLoader(
+            train_set, batch_size=8, shuffle=True)
+        val_loader = torch.utils.data.DataLoader(val_set, batch_size=8)
+        optimizer = AdamW(self.qna_model.parameters(), lr=3e-5)
+        num_epochs = 10
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer, num_warmup_steps=0, num_training_steps=num_epochs * len(train_loader))
+        self.qna_model.to(self.device)
+        progress_bar = tqdm(
+            range(num_epochs * len(train_loader)))
+
+        self.qna_model.train()
+        for epoch in progress_bar:
+            for batch in train_loader:
+                batch = {k: v.to(self.device) for k, v in batch.items()}
+                outputs = self.qna_model(**batch)
+                loss = outputs[0]
+                loss.backward()
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+                progress_bar.set_postfix(loss=loss.item())
+                progress_bar.update(1)
+
+        self.qna_model.eval()
+        print(f"Saving Trained Model to {self.model_directory / 'qna_model'}")
+        self.qna_model.save_pretrained(self.model_directory / "qna_model")
 
     @property
     def labelling_method(self) -> str:
