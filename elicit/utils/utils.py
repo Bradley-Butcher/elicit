@@ -1,7 +1,7 @@
 """Script containing various utility functions."""
 import functools
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Set
+from typing import TYPE_CHECKING, Dict, List, Set
 from collections import Counter
 import pandas as pd
 from spacy.matcher import Matcher
@@ -221,3 +221,26 @@ class QADataset(Dataset):
 
     def __getitem__(self, idx):
         return {key: torch.tensor(value[idx]) for key, value in self.encodings.items()}
+
+
+class SequenceDataset(Dataset):
+    def __init__(self, data: list, categories: list, tokenizer) -> None:
+        self.contexts = []
+        self.categories = []
+        for extraction in data:
+            self.contexts += [extraction.wider_context]
+            self.categories += [extraction.value]
+        label_dict = {cat: i for i, cat in enumerate(set(categories))}
+        self.labels = torch.tensor([label_dict[cat]
+                                   for cat in self.categories])
+        self.encodings = tokenizer(
+            self.contexts, truncation=True, padding=True)
+
+    def __getitem__(self, idx: int):
+        item = {key: torch.tensor(val[idx])
+                for key, val in self.encodings.items()}
+        item["labels"] = self.labels[idx]
+        return item
+
+    def __len__(self):
+        return len(self.labels)

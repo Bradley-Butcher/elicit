@@ -1,17 +1,19 @@
 """Script which uses a Natural Language Inference transfomer model assign extracted Q&A pairs to provided categories."""
+from turtle import forward
 from datasets import load_metric
 import torch
-from torch.optim import AdamW
-from torch.nn import CrossEntropyLoss
-from transformers import MODEL_FOR_QUESTION_ANSWERING_MAPPING, Pipeline, RobertaForQuestionAnswering, RobertaTokenizer, RobertaTokenizerFast, get_linear_schedule_with_warmup, pipeline
-from transformers.modeling_outputs import QuestionAnsweringModelOutput
+from torch.nn import CrossEntropyLoss, BCEWithLogitsLoss, MSELoss
+
+from transformers import BartForSequenceClassification, BartTokenizerFast, Pipeline, Trainer, TrainingArguments, pipeline
+from transformers.modeling_outputs import Seq2SeqSequenceClassifierOutput
 
 from pathlib import Path
 from typing import DefaultDict, Dict, List, Optional, Tuple, Union
 import warnings
+
 from elicit.interface import CategoricalLabellingFunction, Extraction
-from elicit.generic_labelling_functions.qa_transformer import extract_answers
-from elicit.utils.utils import QADataset
+from elicit.generic_labelling_functions.qa_transformer import RobertaForQuestionAnsweringWithNegatives, extract_answers, load_qa_model, train_qa
+from elicit.utils.utils import QADataset, SequenceDataset
 
 from tqdm.auto import tqdm
 
@@ -89,77 +91,123 @@ def match_classify(answers: List[Tuple[str, float]], document_text: str, levels:
         return extractions
 
 
-class RobertaForQuestionAnsweringWithNegatives(RobertaForQuestionAnswering):
-    """
-    RobertaForQuestionAnswering with a negative class.
-    """
-
-    def __init__(self, *args, **kwargs):
+class BartForSequenceClassificationWithNegatives(BartForSequenceClassification):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
     def forward(
         self,
-        input_ids: Optional[torch.LongTensor] = None,
-        attention_mask: Optional[torch.FloatTensor] = None,
-        token_type_ids: Optional[torch.LongTensor] = None,
-        position_ids: Optional[torch.LongTensor] = None,
-        head_mask: Optional[torch.FloatTensor] = None,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        decoder_input_ids: Optional[torch.LongTensor] = None,
+        decoder_attention_mask: Optional[torch.LongTensor] = None,
+        head_mask: Optional[torch.Tensor] = None,
+        decoder_head_mask: Optional[torch.Tensor] = None,
+        cross_attn_head_mask: Optional[torch.Tensor] = None,
+        encoder_outputs: Optional[List[torch.FloatTensor]] = None,
         inputs_embeds: Optional[torch.FloatTensor] = None,
-        start_positions: Optional[torch.LongTensor] = None,
-        end_positions: Optional[torch.LongTensor] = None,
+        decoder_inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-    ):
+    ) -> Union[Tuple, Seq2SeqSequenceClassifierOutput]:
+        r"""
+        labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
+            Labels for computing the sequence classification/regression loss. Indices should be in `[0, ...,
+            config.num_labels - 1]`. If `config.num_labels > 1` a classification loss is computed (Cross-Entropy).
+        """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        if labels is not None:
+            use_cache = False
 
-        outputs = self.roberta(
+        if input_ids is None and inputs_embeds is not None:
+            raise NotImplementedError(
+                f"Passing input embeddings is currently not supported for {self.__class__.__name__}"
+            )
+
+        outputs = self.model(
             input_ids,
             attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
+            decoder_input_ids=decoder_input_ids,
+            decoder_attention_mask=decoder_attention_mask,
             head_mask=head_mask,
+            decoder_head_mask=decoder_head_mask,
+            cross_attn_head_mask=cross_attn_head_mask,
+            encoder_outputs=encoder_outputs,
             inputs_embeds=inputs_embeds,
+            decoder_inputs_embeds=decoder_inputs_embeds,
+            use_cache=use_cache,
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
+        hidden_states = outputs[0]  # last hidden state
 
-        sequence_output = outputs[0]
+        eos_mask = input_ids.eq(self.config.eos_token_id)
 
-        logits = self.qa_outputs(sequence_output)
-        start_logits, end_logits = logits.split(1, dim=-1)
-        start_logits = start_logits.squeeze(-1).contiguous()
-        end_logits = end_logits.squeeze(-1).contiguous()
+        if len(torch.unique_consecutive(eos_mask.sum(1))) > 1:
+            raise ValueError(
+                "All examples must have the same number of <eos> tokens.")
+        sentence_representation = hidden_states[eos_mask, :].view(hidden_states.size(0), -1, hidden_states.size(-1))[
+            :, -1, :
+        ]
+        logits = self.classification_head(sentence_representation)
 
-        total_loss = None
-        if start_positions is not None and end_positions is not None:
-            # If we are on multi-GPU, split add a dimension
-            if len(start_positions.size()) > 1:
-                start_positions = start_positions.squeeze(-1)
-            if len(end_positions.size()) > 1:
-                end_positions = end_positions.squeeze(-1)
-            # sometimes the start/end positions are outside our model inputs, we ignore these terms
-            ignored_index = start_logits.size(1)
-            start_positions = start_positions.clamp(0, ignored_index)
-            end_positions = end_positions.clamp(0, ignored_index)
+        loss = None
+        if labels is not None:
+            if self.config.problem_type is None:
+                if self.config.num_labels == 1:
+                    self.config.problem_type = "regression"
+                elif self.config.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                    self.config.problem_type = "single_label_classification"
+                else:
+                    self.config.problem_type = "multi_label_classification"
 
-            loss_fct = CrossEntropyLoss(ignore_index=ignored_index)
-            start_loss = loss_fct(start_logits, start_positions)
-            end_loss = loss_fct(end_logits, end_positions)
-            total_loss = (start_loss + end_loss) / 2
-
+            if self.config.problem_type == "regression":
+                loss_fct = MSELoss()
+                if self.config.num_labels == 1:
+                    loss = loss_fct(logits.squeeze(), labels.squeeze())
+                else:
+                    loss = loss_fct(logits, labels)
+            elif self.config.problem_type == "single_label_classification":
+                loss_fct = CrossEntropyLoss()
+                loss = loss_fct(
+                    logits.view(-1, self.config.num_labels), labels.view(-1))
+            elif self.config.problem_type == "multi_label_classification":
+                loss_fct = BCEWithLogitsLoss()
+                loss = loss_fct(logits, labels)
         if not return_dict:
-            output = (start_logits, end_logits) + outputs[2:]
-            return ((total_loss,) + output) if total_loss is not None else output
-
-        return QuestionAnsweringModelOutput(
-            loss=total_loss,
-            start_logits=start_logits,
-            end_logits=end_logits,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
+            output = (logits,) + outputs[1:]
+            return ((loss,) + output) if loss is not None else output
+        return Seq2SeqSequenceClassifierOutput(
+            loss=loss,
+            logits=logits,
+            past_key_values=outputs.past_key_values,
+            decoder_hidden_states=outputs.decoder_hidden_states,
+            decoder_attentions=outputs.decoder_attentions,
+            cross_attentions=outputs.cross_attentions,
+            encoder_last_hidden_state=outputs.encoder_last_hidden_state,
+            encoder_hidden_states=outputs.encoder_hidden_states,
+            encoder_attentions=outputs.encoder_attentions,
         )
+
+
+def load_seq_model(model_directory: str) -> tuple[RobertaForQuestionAnsweringWithNegatives, BartTokenizerFast]:
+    if (model_directory / "seq_model").exists():
+        print("Fine tuned Sequence Classifier model found, loading...")
+        tokenizer = BartTokenizerFast.from_pretrained(
+            "facebook/bart-large-mnli")
+        model = BartForSequenceClassificationWithNegatives.from_pretrained(
+            model_directory / "seq_model")
+    else:
+        print("No fine tuned Sequence Classifier model found, loading generic model...")
+        tokenizer = BartTokenizerFast.from_pretrained(
+            "facebook/bart-large-mnli")
+        model = BartForSequenceClassificationWithNegatives.from_pretrained(
+            "facebook/bart-large-mnli")
+    return model, tokenizer
 
 
 class NLILabellingFunction(CategoricalLabellingFunction):
@@ -171,26 +219,18 @@ class NLILabellingFunction(CategoricalLabellingFunction):
     def load(self, model_directory: Path, device: Union[int, str]) -> None:
         self.device = device
         self.model_directory = model_directory
-        self.classifier = pipeline("zero-shot-classification",
-                                   model="facebook/bart-large-mnli", device=self.device)
-        if (model_directory / "qna_model").exists():
-            print("Fine tuned Q&A model found, loading...")
-            MODEL_FOR_QUESTION_ANSWERING_MAPPING["neg_roberta"] = "RobertaForQuestionAnsweringWithNegatives"
-            self.qna_tokenizer = RobertaTokenizerFast.from_pretrained(
-                "deepset/roberta-base-squad2")
-            self.qna_model = RobertaForQuestionAnsweringWithNegatives.from_pretrained(
-                model_directory / "qna_model")
-        else:
-            print("No fine tuned Q&A model found, loading generic model...")
-            MODEL_FOR_QUESTION_ANSWERING_MAPPING["neg_roberta"] = "RobertaForQuestionAnsweringWithNegatives"
-            self.qna_tokenizer = RobertaTokenizerFast.from_pretrained(
-                "deepset/roberta-base-squad2")
-            self.qna_model = RobertaForQuestionAnsweringWithNegatives.from_pretrained(
-                "deepset/roberta-base-squad2")
+        self.seq_model, self.seq_tokenizer = load_seq_model(model_directory)
+        self.qna_model, self.qna_tokenizer = load_qa_model(model_directory)
         self.qna_pipeline = pipeline(
             task='question-answering',
             model=self.qna_model,
             tokenizer=self.qna_tokenizer,
+            device=device
+        )
+        self.classifier = pipeline(
+            task='zero-shot-classification',
+            model=self.seq_model,
+            tokenizer=self.seq_tokenizer,
             device=device
         )
         self.loaded = True
@@ -215,38 +255,41 @@ class NLILabellingFunction(CategoricalLabellingFunction):
         self.push_many(document_name, variable_name, extractions)
 
     def train(self, data: dict[str, List["Extraction"]]):
-        dataset = QADataset(data, self.get_schema(
-            "questions"), self.qna_tokenizer)
-        N = len(dataset)
-        train_set, val_set = torch.utils.data.random_split(
-            dataset, [N - (N // 10), N // 10])
-        train_loader = torch.utils.data.DataLoader(
-            train_set, batch_size=8, shuffle=True)
-        val_loader = torch.utils.data.DataLoader(val_set, batch_size=8)
-        optimizer = AdamW(self.qna_model.parameters(), lr=3e-5)
-        num_epochs = 10
-        scheduler = get_linear_schedule_with_warmup(
-            optimizer, num_warmup_steps=0, num_training_steps=num_epochs * len(train_loader))
-        self.qna_model.to(self.device)
-        progress_bar = tqdm(
-            range(num_epochs * len(train_loader)))
-
-        self.qna_model.train()
-        for epoch in progress_bar:
-            for batch in train_loader:
-                batch = {k: v.to(self.device) for k, v in batch.items()}
-                outputs = self.qna_model(**batch)
-                loss = outputs[0]
-                loss.backward()
-                optimizer.step()
-                scheduler.step()
-                optimizer.zero_grad()
-                progress_bar.set_postfix(loss=loss.item())
-                progress_bar.update(1)
-
-        self.qna_model.eval()
-        print(f"Saving Trained Model to {self.model_directory / 'qna_model'}")
-        self.qna_model.save_pretrained(self.model_directory / "qna_model")
+        # print("Training Q&A model")
+        # qa_dataset = QADataset(data, self.get_schema(
+        #     "questions"), self.qna_tokenizer)
+        # self.qna_model = train_qa(qa_dataset, self.qna_model, self.device)
+        # print(f"Saving Trained Model to {self.model_directory / 'qna_model'}")
+        # self.qna_model.save_pretrained(self.model_directory / "qna_model")
+        print("Training Seq. Classification Model")
+        for var in data.keys():
+            dataset = SequenceDataset(data[var], self.get_schema(
+                "categories", var), self.classifier.tokenizer)
+            N = len(dataset)
+            print(
+                f"Fine-tuning zero-shot sequence classifier for variable {var} on {N} samples.")
+            train_set, val_set = torch.utils.data.random_split(
+                dataset, [N - (N // 10), N // 10])
+            training_args = TrainingArguments(
+                output_dir=self.model_directory / 'seq_model',
+                num_train_epochs=3,              # total number of training epochs
+                per_device_train_batch_size=16,  # batch size per device during training
+                per_device_eval_batch_size=64,   # batch size for evaluation
+                warmup_steps=500,                # number of warmup steps for learning rate scheduler
+                weight_decay=0.01,               # strength of weight decay
+                logging_dir=self.model_directory / 'logs',            # directory for storing logs
+                logging_steps=10,
+            )
+            trainer = Trainer(
+                model=self.seq_model,
+                args=training_args,
+                train_dataset=train_set,
+                eval_dataset=val_set
+            )
+            trainer.train()
+            print(
+                f"Saving Trained Model to {self.model_directory / 'seq_model'}")
+        self.seq_model.save_pretrained(self.model_directory / "seq_model")
 
     @property
     def labelling_method(self) -> str:
