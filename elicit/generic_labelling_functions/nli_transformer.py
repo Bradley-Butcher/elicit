@@ -255,12 +255,12 @@ class NLILabellingFunction(CategoricalLabellingFunction):
         self.push_many(document_name, variable_name, extractions)
 
     def train(self, data: dict[str, List["Extraction"]]):
-        # print("Training Q&A model")
-        # qa_dataset = QADataset(data, self.get_schema(
-        #     "questions"), self.qna_tokenizer)
-        # self.qna_model = train_qa(qa_dataset, self.qna_model, self.device)
-        # print(f"Saving Trained Model to {self.model_directory / 'qna_model'}")
-        # self.qna_model.save_pretrained(self.model_directory / "qna_model")
+        print("Training Q&A model")
+        qa_dataset = QADataset(data, self.get_schema(
+            "questions"), self.qna_tokenizer)
+        self.qna_model = train_qa(qa_dataset, self.qna_model, self.device)
+        print(f"Saving Trained Model to {self.model_directory / 'qna_model'}")
+        self.qna_model.save_pretrained(self.model_directory / "qna_model")
         print("Training Seq. Classification Model")
         for var in data.keys():
             dataset = SequenceDataset(data[var], self.get_schema(

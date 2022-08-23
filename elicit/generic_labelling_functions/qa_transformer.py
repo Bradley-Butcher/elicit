@@ -5,8 +5,9 @@ from typing import Dict, List, Optional, Tuple, Union
 import itertools
 import warnings
 
-from transformers import MODEL_FOR_QUESTION_ANSWERING_MAPPING, Pipeline, RobertaForQuestionAnswering, RobertaTokenizer, get_linear_schedule_with_warmup
+from transformers import Pipeline, RobertaForQuestionAnswering, RobertaTokenizer, get_linear_schedule_with_warmup
 from transformers.modeling_outputs import QuestionAnsweringModelOutput
+from transformers.pipelines.question_answering import MODEL_FOR_QUESTION_ANSWERING_MAPPING
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW

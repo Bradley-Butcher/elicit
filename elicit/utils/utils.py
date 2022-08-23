@@ -7,6 +7,7 @@ import pandas as pd
 from spacy.matcher import Matcher
 import torch
 from torch.utils.data import Dataset
+from sentence_transformers import InputExample
 
 import spacy
 
@@ -244,3 +245,25 @@ class SequenceDataset(Dataset):
 
     def __len__(self):
         return len(self.labels)
+
+
+def extraction_to_input_examples(extraction, questions: list, negative_val: float = 0.1) -> InputExample:
+    label = 1.0 if extraction.valid else negative_val
+    question_examples = [
+        InputExample(
+            texts=[
+                context,
+                question,
+            ], label=label
+        ) for question in questions
+        for context in [extraction.local_context, extraction.exact_context]
+    ]
+    category_examples = [
+        InputExample(
+            texts=[
+                context,
+                extraction.value,
+            ], label=label
+        ) for context in [extraction.local_context, extraction.exact_context]
+    ]
+    return question_examples + category_examples

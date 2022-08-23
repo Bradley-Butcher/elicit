@@ -1,5 +1,6 @@
 """Script to extract answers from a document using a Sentence Similarity Transformer model trained on Q&A pairs."""
 from pathlib import Path
+from typing import Union
 from sentence_transformers import SentenceTransformer, util
 from elicit.interface import CategoricalLabellingFunction, Extraction
 
@@ -82,9 +83,21 @@ class SemanticSearchLF(CategoricalLabellingFunction):
     def __init__(self, schemas, logger, **kwargs):
         super().__init__(schemas, logger, **kwargs)
         self.sim_threshold = 0.25
+
+    def _load_similarity_model(self, model_directory: str, device: Union[int, str]) -> SentenceTransformer:
+        if (model_directory / "sim_model").exists():
+            print("Fine tuning similarity model found, loading...")
+            return SentenceTransformer(
+                model_directory / "sim_model")
+        else:
+            print("No fine tuning similarity model found, training...")
+            return SentenceTransformer(
+                'all-MiniLM-L6-v2',
+                device=device
+            )
     
-    def load(self) -> None:
-        self.model = SentenceTransformer('sentence-transformers/multi-qa-MiniLM-L6-cos-v1', device="cuda")
+    def load(self, model_directory: str, device: Union[int, str]) -> None:
+        self.model = self._load_similarity_model(model_directory, device)
 
     def extract(self, document_name: str, variable_name: str, document_text: str) -> None:
         questions = self.get_schema("questions", variable_name)
