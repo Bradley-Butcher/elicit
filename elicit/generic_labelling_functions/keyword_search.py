@@ -1,6 +1,6 @@
 """Script which searches for keywords (from a schema) in a document."""
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import spacy
 from spacy.matcher import PhraseMatcher
@@ -58,8 +58,9 @@ class KeywordMatchLF(CategoricalLabellingFunction):
     def labelling_method(self):
         return "Keyword Match"
 
-    def train(self, doc: str, extraction: Extraction):
+    def train(self, data: dict[str, List["Extraction"]]):
         pass
 
-    def load(self):
+    def load(self, model_directory: Path, device: Union[int, str]):
+        self.loaded = True
         pass

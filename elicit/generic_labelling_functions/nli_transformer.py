@@ -1,38 +1,23 @@
 """Script which uses a Natural Language Inference transfomer model assign extracted Q&A pairs to provided categories."""
-import yaml
-from transformers import Pipeline, pipeline
+from turtle import forward
+from datasets import load_metric
+import torch
+from torch.nn import CrossEntropyLoss, BCEWithLogitsLoss, MSELoss
+
+from transformers import BartForSequenceClassification, BartTokenizerFast, Pipeline, Trainer, TrainingArguments, pipeline
+from transformers.modeling_outputs import Seq2SeqSequenceClassifierOutput
+
 from pathlib import Path
-from typing import DefaultDict, Dict, List, Tuple
-import re
+from typing import DefaultDict, Dict, List, Optional, Tuple, Union
 import warnings
+
 from elicit.interface import CategoricalLabellingFunction, Extraction
+from elicit.generic_labelling_functions.qa_transformer import RobertaForQuestionAnsweringWithNegatives, extract_answers, load_qa_model, train_qa
+from elicit.utils.dl_utils import QADataset, SequenceDataset
 
-from elicit.generic_labelling_functions.qa_transformer import extract_answers
-
+from tqdm.auto import tqdm
 
 warnings.filterwarnings("ignore")
-
-
-# def extract_value(answers: List[Tuple[str, float, int, int]], doc: str, threshold: float) -> Union[DocumentField, List[DocumentField]]:
-#     """
-#     Extract numerical value from the output Q&A Transformer, only used if variable category is assigned as "continuous".
-
-#     :param answers: List of answers from Q&A Transformer.
-#     :param doc: Document string.
-#     :param threshold: Threshold for the Q&A Transformer. Only answers above this threshold are considered.
-
-#     :return: Either CaseField object with the extracted value, or a list of CaseField objects with the extracted values. Depending on the number of valid answers.
-#     """
-#     values = [(re.findall(r'\d+', answer)[0], score, start, end)
-#               for answer, score, start, end in answers if score > threshold and re.findall(r'\d+', answer)]
-#     if not values:
-#         return DocumentField(value="unknown", confidence=0, evidence=Extraction.abstain())
-#     values, context = compress(values)
-#     output = [DocumentField(value=k, confidence=v, evidence=Extraction.from_character_startend(
-#         doc, context[k]["start"], context[k]["end"])) for k, v in values.items()]
-#     if len(output) == 1:
-#         return output[0]
-#     return output
 
 
 def compress(candidates: List[Tuple[str, float, int, int]]) -> Dict[str, float]:
@@ -106,76 +91,124 @@ def match_classify(answers: List[Tuple[str, float]], document_text: str, levels:
         return extractions
 
 
-# def extract_top(answers: List[Tuple[str, float, int, int]], doc: str) -> List[DocumentField]:
-#     """
-#     Extract top answer from Q&A Transformer. This is used if variable category is assigned as "raw".
+class BartForSequenceClassificationWithNegatives(BartForSequenceClassification):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
-#     :param answers: List of answers from Q&A Transformer.
-#     :param doc: Document string.
+    def forward(
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        decoder_input_ids: Optional[torch.LongTensor] = None,
+        decoder_attention_mask: Optional[torch.LongTensor] = None,
+        head_mask: Optional[torch.Tensor] = None,
+        decoder_head_mask: Optional[torch.Tensor] = None,
+        cross_attn_head_mask: Optional[torch.Tensor] = None,
+        encoder_outputs: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        decoder_inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
+    ) -> Union[Tuple, Seq2SeqSequenceClassifierOutput]:
+        r"""
+        labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
+            Labels for computing the sequence classification/regression loss. Indices should be in `[0, ...,
+            config.num_labels - 1]`. If `config.num_labels > 1` a classification loss is computed (Cross-Entropy).
+        """
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        if labels is not None:
+            use_cache = False
 
-#     :return: List of CaseField objects with the extracted values.
-#     """
-#     if not answers:
-#         return DocumentField(value="unknown", confidence=0, evidence=Extraction.abstain())
-#     answers, context = compress(answers)
-#     return [DocumentField(value=k, confidence=v, evidence=Extraction.from_character_startend(doc, context[k]["start"], context[k]["end"])) for k, v in answers.items()]
+        if input_ids is None and inputs_embeds is not None:
+            raise NotImplementedError(
+                f"Passing input embeddings is currently not supported for {self.__class__.__name__}"
+            )
+
+        outputs = self.model(
+            input_ids,
+            attention_mask=attention_mask,
+            decoder_input_ids=decoder_input_ids,
+            decoder_attention_mask=decoder_attention_mask,
+            head_mask=head_mask,
+            decoder_head_mask=decoder_head_mask,
+            cross_attn_head_mask=cross_attn_head_mask,
+            encoder_outputs=encoder_outputs,
+            inputs_embeds=inputs_embeds,
+            decoder_inputs_embeds=decoder_inputs_embeds,
+            use_cache=use_cache,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+        )
+        hidden_states = outputs[0]  # last hidden state
+
+        eos_mask = input_ids.eq(self.config.eos_token_id)
+
+        if len(torch.unique_consecutive(eos_mask.sum(1))) > 1:
+            raise ValueError(
+                "All examples must have the same number of <eos> tokens.")
+        sentence_representation = hidden_states[eos_mask, :].view(hidden_states.size(0), -1, hidden_states.size(-1))[
+            :, -1, :
+        ]
+        logits = self.classification_head(sentence_representation)
+
+        loss = None
+        if labels is not None:
+            if self.config.problem_type is None:
+                if self.config.num_labels == 1:
+                    self.config.problem_type = "regression"
+                elif self.config.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                    self.config.problem_type = "single_label_classification"
+                else:
+                    self.config.problem_type = "multi_label_classification"
+
+            if self.config.problem_type == "regression":
+                loss_fct = MSELoss()
+                if self.config.num_labels == 1:
+                    loss = loss_fct(logits.squeeze(), labels.squeeze())
+                else:
+                    loss = loss_fct(logits, labels)
+            elif self.config.problem_type == "single_label_classification":
+                loss_fct = CrossEntropyLoss()
+                loss = loss_fct(
+                    logits.view(-1, self.config.num_labels), labels.view(-1))
+            elif self.config.problem_type == "multi_label_classification":
+                loss_fct = BCEWithLogitsLoss()
+                loss = loss_fct(logits, labels)
+        if not return_dict:
+            output = (logits,) + outputs[1:]
+            return ((loss,) + output) if loss is not None else output
+        return Seq2SeqSequenceClassifierOutput(
+            loss=loss,
+            logits=logits,
+            past_key_values=outputs.past_key_values,
+            decoder_hidden_states=outputs.decoder_hidden_states,
+            decoder_attentions=outputs.decoder_attentions,
+            cross_attentions=outputs.cross_attentions,
+            encoder_last_hidden_state=outputs.encoder_last_hidden_state,
+            encoder_hidden_states=outputs.encoder_hidden_states,
+            encoder_attentions=outputs.encoder_attentions,
+        )
 
 
-# def process_answers(answers: Dict[str, Tuple[str, float, int, int]], doc: str, categories_schema: Path, threshold: float = 0.7) -> Dict[str, List[str]]:
-#     """
-#     Process the answers from the Q&A Transformer.
-#     Assigns Categorical variables to provided categories, extracts numerical values for continuous variables, and extracts top answers for raw variables.
+def load_seq_model(model_directory: str) -> tuple[RobertaForQuestionAnsweringWithNegatives, BartTokenizerFast]:
+    if (model_directory / "seq_model").exists():
+        print("Fine tuned Sequence Classifier model found, loading...")
+        tokenizer = BartTokenizerFast.from_pretrained(
+            "facebook/bart-large-mnli")
+        model = BartForSequenceClassificationWithNegatives.from_pretrained(
+            model_directory / "seq_model")
+    else:
+        print("No fine tuned Sequence Classifier model found, loading generic model...")
+        tokenizer = BartTokenizerFast.from_pretrained(
+            "facebook/bart-large-mnli")
+        model = BartForSequenceClassificationWithNegatives.from_pretrained(
+            "facebook/bart-large-mnli")
+    return model, tokenizer
 
-#     :param answers: Dictionary of answers from Q&A Transformer.
-#     :param doc: Document string.
-#     :param categories_schema: Path to the categories schema.
-#     :param threshold: Threshold for the Q&A Transformer. Only answers above this threshold are considered.
-
-#     :return: Dictionary of answers and their values.
-#     """
-#     variables = load_schema(categories_schema)
-#     extracted_variables = {}
-#     for key in variables.keys():
-#         if variables[key] == "continuous":
-#             extracted_variables[key] = extract_value(
-#                 answers=answers[key], doc=doc, threshold=threshold)
-#         elif variables[key] == "raw":
-#             extracted_variables[key] = extract_top(
-#                 answers=answers[key], doc=doc)
-#         else:
-#             extracted_variables[key] = match_classify(
-#                 answers=answers[key], doc=doc, levels=variables[key], threshold=threshold)
-#     return extracted_variables
-
-
-# @labelling_function(labelling_method="NLI Transformer", required_schemas=["question_schema", "categories_schema"])
-# def nli_extraction(
-#     doc: str,
-#     document: Document,
-#     question_schema: Path,
-#     categories_schema: Path,
-#     match_threshold: float = 0.3,
-#     qa_threshold: float = 0.5,
-#     device=None
-# ) -> Document:
-#     """
-#     Task for using NLI to extract variables from a document.
-
-#     :param doc: Document string.
-#     :param case: Case object to add extracted variables to.
-#     :param question_schema: Path to the question schema.
-#     :param categories_schema: Path to the categories schema.
-#     :param match_threshold: Threshold for the NLI Transformer. Only answers above this threshold are considered.
-#     :param qa_threshold: Threshold for the Q&A Transformer. Only answers above this threshold are considered.
-
-#     :return: Case object with extracted variables.
-#     """
-#     answers = extract_answers(
-#         doc=doc, case=document, question_schema=question_schema, threshold=qa_threshold)
-#     answer_dict = process_answers(
-#         answers, doc=doc, categories_schema=categories_schema, threshold=match_threshold)
-#     document.add_dict(answer_dict)
-#     return document
 
 class NLILabellingFunction(CategoricalLabellingFunction):
     def __init__(self, schemas, logger, **kwargs):
@@ -183,14 +216,24 @@ class NLILabellingFunction(CategoricalLabellingFunction):
         self.match_threshold = 0.5
         self.qna_threshold = 0.3
 
-    def load(self) -> None:
-        self.classifier = pipeline("zero-shot-classification",
-                                   model="facebook/bart-large-mnli", device=0)
-        self.qna_model = pipeline(
-            'question-answering',
-            model="deepset/roberta-base-squad2",
-            tokenizer="deepset/roberta-base-squad2", device=0
+    def load(self, model_directory: Path, device: Union[int, str]) -> None:
+        self.device = device
+        self.model_directory = model_directory
+        self.seq_model, self.seq_tokenizer = load_seq_model(model_directory)
+        self.qna_model, self.qna_tokenizer = load_qa_model(model_directory)
+        self.qna_pipeline = pipeline(
+            task='question-answering',
+            model=self.qna_model,
+            tokenizer=self.qna_tokenizer,
+            device=device
         )
+        self.classifier = pipeline(
+            task='zero-shot-classification',
+            model=self.seq_model,
+            tokenizer=self.seq_tokenizer,
+            device=device
+        )
+        self.loaded = True
 
     def extract(self, document_name: str, variable_name: str, document_text: str) -> None:
         questions = self.get_schema("questions", variable_name)
@@ -199,7 +242,7 @@ class NLILabellingFunction(CategoricalLabellingFunction):
         answers = extract_answers(
             document_text,
             questions=questions,
-            qna_model=self.qna_model,
+            qna_model=self.qna_pipeline,
             threshold=self.qna_threshold
         )
         extractions = match_classify(
@@ -211,8 +254,42 @@ class NLILabellingFunction(CategoricalLabellingFunction):
             threshold=final_threshold)
         self.push_many(document_name, variable_name, extractions)
 
-    def train(self, document_name: str, variable_name: str, extraction: Extraction):
-        pass
+    def train(self, data: dict[str, List["Extraction"]]):
+        print("Training Q&A model")
+        qa_dataset = QADataset(data, self.get_schema(
+            "questions"), self.qna_tokenizer)
+        self.qna_model = train_qa(qa_dataset, self.qna_model, self.device)
+        print(f"Saving Trained Model to {self.model_directory / 'qna_model'}")
+        self.qna_model.save_pretrained(self.model_directory / "qna_model")
+        print("Training Seq. Classification Model")
+        for var in data.keys():
+            dataset = SequenceDataset(data[var], self.get_schema(
+                "categories", var), self.classifier.tokenizer)
+            N = len(dataset)
+            print(
+                f"Fine-tuning zero-shot sequence classifier for variable {var} on {N} samples.")
+            train_set, val_set = torch.utils.data.random_split(
+                dataset, [N - (N // 10), N // 10])
+            training_args = TrainingArguments(
+                output_dir=self.model_directory / 'seq_model',
+                num_train_epochs=3,              # total number of training epochs
+                per_device_train_batch_size=16,  # batch size per device during training
+                per_device_eval_batch_size=64,   # batch size for evaluation
+                warmup_steps=500,                # number of warmup steps for learning rate scheduler
+                weight_decay=0.01,               # strength of weight decay
+                logging_dir=self.model_directory / 'logs',            # directory for storing logs
+                logging_steps=10,
+            )
+            trainer = Trainer(
+                model=self.seq_model,
+                args=training_args,
+                train_dataset=train_set,
+                eval_dataset=val_set
+            )
+            trainer.train()
+            print(
+                f"Saving Trained Model to {self.model_directory / 'seq_model'}")
+        self.seq_model.save_pretrained(self.model_directory / "seq_model")
 
     @property
     def labelling_method(self) -> str:

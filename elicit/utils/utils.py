@@ -1,12 +1,15 @@
 """Script containing various utility functions."""
 import functools
 from pathlib import Path
-from typing import List, Set
+from typing import TYPE_CHECKING, Dict, List, Set
 from collections import Counter
+import warnings
+
+
 import pandas as pd
 from spacy.matcher import Matcher
-
 import spacy
+
 
 def split_doc(doc: str, max_length: int = 512, token: str = ".") -> list:
     """Split a document into sentences. 
@@ -25,10 +28,12 @@ def split_doc(doc: str, max_length: int = 512, token: str = ".") -> list:
         if current_end + max_length >= len(doc):
             sections.append(doc[current_end:])
             break
-        section_end = doc[current_end:current_end + max_length].rfind(token) + current_end
+        section_end = doc[current_end:current_end +
+                          max_length].rfind(token) + current_end
         sections += [doc[current_end:section_end]]
         current_end = section_end
     return sections
+
 
 def context_from_doc_char(doc: str, start_idx: int, end_idx: int, padding: int = 100) -> str:
     """
@@ -44,6 +49,7 @@ def context_from_doc_char(doc: str, start_idx: int, end_idx: int, padding: int =
     start_idx = max(0, start_idx - padding)
     end_idx = min(len(doc), end_idx + padding)
     return doc[start_idx: end_idx]
+
 
 def is_remarks(doc: str, filename: str) -> str:
     """
