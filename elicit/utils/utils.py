@@ -3,13 +3,20 @@ import functools
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Set
 from collections import Counter
+import warnings
+
+
 import pandas as pd
 from spacy.matcher import Matcher
-import torch
-from torch.utils.data import Dataset
-from sentence_transformers import InputExample
-
 import spacy
+
+# Optional DL Libraries
+try:
+    import torch
+    from torch.utils.data import Dataset
+    from sentence_transformers import InputExample
+except ModuleNotFoundError:
+    warnings.warn("Deep learning libraries not installed.")
 
 
 def split_doc(doc: str, max_length: int = 512, token: str = ".") -> list:
