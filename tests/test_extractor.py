@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 import pytest
 
@@ -19,18 +19,19 @@ class ExampleLabellingFunction(CategoricalLabellingFunction):
             for kw in kws:
                 if kw in document_text:
                     exts.append(Extraction(
-                        k, kw, document_text, document_text, 1, None))
+                        k, kw, document_text, document_text, 1, None, None))
         self.push_many(
             document_name=document_name,
             variable_name=variable_name,
             extraction_list=exts)
 
-    def train(self, variable_name: str, extractions: List["Extraction"]):
-        for extraction in extractions:
-            self.schemas["keywords"][variable_name][extraction.value].append(
-                extraction.local_context.split(" ")[-1])
+    def train(self, data: dict[str, List["Extraction"]]):
+        for variable_name, extractions in data.items():
+            for extraction in extractions:
+                self.schemas["keywords"][variable_name][extraction.value].append(
+                    extraction.local_context.split(" ")[-1])
 
-    def load(self) -> None:
+    def load(self, model_directory: Path, device: Union[int, str]) -> None:
         self.model = "test_model"
 
     @property
