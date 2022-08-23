@@ -15,7 +15,7 @@ from tqdm.auto import tqdm
 
 from elicit.interface import Extraction
 from elicit.utils.loading import load_schema
-from elicit.utils.utils import QADataset
+from elicit.utils.dl_utils import QADataset
 
 warnings.filterwarnings("ignore")
 

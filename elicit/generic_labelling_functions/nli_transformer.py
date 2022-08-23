@@ -13,7 +13,7 @@ import warnings
 
 from elicit.interface import CategoricalLabellingFunction, Extraction
 from elicit.generic_labelling_functions.qa_transformer import RobertaForQuestionAnsweringWithNegatives, extract_answers, load_qa_model, train_qa
-from elicit.utils.utils import QADataset, SequenceDataset
+from elicit.utils.dl_utils import QADataset, SequenceDataset
 
 from tqdm.auto import tqdm
 
