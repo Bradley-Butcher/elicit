@@ -12,7 +12,7 @@ Currently pre-alpha. First release expected 01/08/2022.
 
 Elicit is a *human in the loop* machine learning tool for extracting information from complex documents.
 
-The tool works in a similar manner to weak supervision approaches, such as [Snorkel](https://github.com/snorkel-team/snorkel) or [Sqweak](https://github.com/NorskRegnesentral/skweak), where the output from a set of *labelling functions* are combined to form a distribution over possible labels. 
+The tool works in a similar manner to weak supervision approaches, such as [Rubrix](https://github.com/recognai/rubrix), [Snorkel](https://github.com/snorkel-team/snorkel) or [Sqweak](https://github.com/NorskRegnesentral/skweak), where the output from a set of *labelling functions* are combined to form a distribution over possible labels. 
 
 <p align="center">
 <img src="pipeline.jpg" alt="drawing" width="60%"/>
