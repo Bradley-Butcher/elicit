@@ -13,6 +13,7 @@
     "chart.js": "^3.7.1",
     "core-js": "^3.6.5",
     "vue": "^2.6.11",
+    "vue-dragscroll": "^3.0.1",
     "vue-router": "^3.5.3",
     "vuetify": "^2.4.0"
   },
