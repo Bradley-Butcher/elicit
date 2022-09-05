@@ -25,24 +25,16 @@ def test_set_confidence(db):
 
 def test_get_data(db):
     df = get_data(db, "var_0")
-    assert len(df) == 100
+    assert sum([len(dfi) for dfi in df]) == 100
 
 
 def test_get_variable_data(db):
     df = get_data(db, "var_0")
-    _, X, y = get_variable_data(df, training=False, include_value=False)
+    _, X, y = get_variable_data(df[0], training=False)
     assert len(X.columns) == 3
-    _, X, y = get_variable_data(df, training=False, include_value=True)
-    assert len(X.columns) == 6
 
 
 def test_update_confidence(db):
-    update_confidence(db, include_value=False)
-    confidences = query_db(db, "SELECT value_confidence FROM variable")
-    assert all(c[0] is not None for c in confidences)
-
-
-def test_update_confidence_withval(db):
-    update_confidence(db, include_value=True)
+    update_confidence(db)
     confidences = query_db(db, "SELECT value_confidence FROM variable")
     assert all(c[0] is not None for c in confidences)

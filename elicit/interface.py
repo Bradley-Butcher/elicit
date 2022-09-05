@@ -171,7 +171,7 @@ class ElicitLogger:
         cond = "= 'TRUE'" if not include_negative else "IS NOT NULL"
         cursor = self.db.execute(
             f"""
-                SELECT DISTINCT document.document_name, variable.variable_value, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, extraction.valid, extraction.validated_context FROM extraction 
+                SELECT DISTINCT document.document_name, variable.variable_value, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.meta_confidence, extraction.valid, extraction.validated_context FROM extraction 
                 LEFT JOIN variable
                 ON extraction.variable_id = variable.variable_id 
                 LEFT JOIN document 

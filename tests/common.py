@@ -16,8 +16,9 @@ def database():
     for i in range(n_data):
         for j in range(n_vars):
             val = random.randint(1, 3)
+            method = random.choice(["method_1", "method_2", "method_3"])
             e = Extraction(f"value_{val}", None, None, None, 1, None, None)
-            logger.push(f"doc_{i}", f"var_{j}", e, f"test_{val}")
+            logger.push(f"doc_{i}", f"var_{j}", e, method)
             selector = random.random()
             if selector > 0.5:
                 query_db(
