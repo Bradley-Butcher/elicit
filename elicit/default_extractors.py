@@ -22,7 +22,7 @@ def generic_extractor(
     :param categories_schema: Path to categories schema.
     :param keyword_schema: Path to keyword schema.
     """
-    extractor = Extractor(db_path=db_path)
+    extractor = Extractor(db_path=db_path, device=0, top_k=3)
 
     # Register schemas
     extractor.register_schema(schema=question_schema,
@@ -33,11 +33,10 @@ def generic_extractor(
                               schema_name="keywords")
 
     # Register functions
-
+    extractor.register_labelling_function(NLILabellingFunction)
+    extractor.register_labelling_function(KeywordMatchLF)
     extractor.register_labelling_function(SemanticSearchLF)
     extractor.register_labelling_function(SimilarityLabellingFunction)
-    extractor.register_labelling_function(KeywordMatchLF)
-    extractor.register_labelling_function(NLILabellingFunction)
 
     # Run pipeline - results are stored in db
     extractor.run(docs)

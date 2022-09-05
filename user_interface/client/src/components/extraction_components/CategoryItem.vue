@@ -25,7 +25,11 @@
               align="center"
             >
               <div class="font-weight-bold">
-                Confidence: {{ value_data.confidence }}
+                {{
+                  value_data.confidence
+                    ? "Confidence: " + value_data.confidence
+                    : "Agreement: " + value_data.agreement
+                }}
               </div></v-card
             ></v-col
           >
@@ -37,7 +41,9 @@
               style="background-color: #eceff1"
               max-width="150px"
             >
-              <div class="font-weight-bold">Evidence: unknown</div></v-card
+              <div class="font-weight-bold">
+                Evidence: {{ exact_context }}
+              </div></v-card
             ></v-col
           >
           <v-col md="2" offset-md="3" align="right">
@@ -45,8 +51,8 @@
               align="center"
               class="pa-1 ml-auto"
               :class="{
-                answered: value_data.valid && value_data.valid != 'null',
-                unanswered: !value_data.valid || value_data.valid == 'null',
+                answered: status,
+                unanswered: !status,
               }"
               :elevation="status ? 1 : 0"
               outlined
@@ -61,7 +67,12 @@
       >
     </v-expansion-panel-header>
     <v-expansion-panel-content padding="0">
-      <ExtractionTray :extractions="extractions"></ExtractionTray>
+      <ExtractionTray
+        :extractions="extractions"
+        @update_extraction="update_extraction"
+        @remove_option="remove_option"
+        :training_state="training_state"
+      ></ExtractionTray>
     </v-expansion-panel-content>
   </v-expansion-panel>
 </template>
@@ -80,10 +91,56 @@ export default {
       type: String,
       required: true,
     },
+    training_state: {
+      type: Boolean,
+      required: true,
+    },
+  },
+  methods: {
+    update_extraction(extraction_id, extraction) {
+      this.$emit(
+        "update_extraction",
+        this.value_name,
+        extraction_id,
+        extraction
+      );
+    },
+    remove_option(extraction_id) {
+      this.$emit("remove_option", this.value_name, extraction_id);
+    },
   },
   computed: {
+    //iterate over this.value_data.extractions, return true is valid is ever "TRUE"
+    status() {
+      return this.value_data.extractions.some((extraction) => {
+        return extraction.valid == "TRUE";
+      });
+    },
     extractions() {
       return this.value_data.extractions;
+    },
+    exact_context() {
+      //return exact context with maximum confidence from value_data.extractions list
+      let max_confidence = 0;
+      let exact_context = "";
+      this.value_data.extractions.forEach((extraction) => {
+        if (extraction.confidence > max_confidence) {
+          max_confidence = extraction.meta_confidence;
+          exact_context = extraction.exact_context;
+        }
+      });
+      if (max_confidence > 0) return exact_context;
+      if (max_confidence == 0) {
+        this.value_data.extractions.forEach((extraction) => {
+          extraction.lfs.forEach((lf) => {
+            if (lf.lf_confidence > max_confidence) {
+              max_confidence = lf.lf_confidence;
+              exact_context = extraction.exact_context;
+            }
+          });
+        });
+      }
+      return exact_context;
     },
   },
   components: { ExtractionTray },

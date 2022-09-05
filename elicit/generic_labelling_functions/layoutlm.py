@@ -1,21 +1,16 @@
 """Script which uses a Natural Language Inference transfomer model assign extracted Q&A pairs to provided categories."""
-from turtle import forward
-from datasets import load_metric
 import torch
 from torch.nn import CrossEntropyLoss, BCEWithLogitsLoss, MSELoss
 
-from transformers import BartForSequenceClassification, BartTokenizerFast, Pipeline, Trainer, TrainingArguments, pipeline
-from transformers.modeling_outputs import Seq2SeqSequenceClassifierOutput
+from transformers import AutoTokenizer, pipeline
+from transformers import BartForSequenceClassification, BartTokenizerFast
 
 from pathlib import Path
 from typing import DefaultDict, Dict, List, Optional, Tuple, Union
 import warnings
 
 from elicit.interface import CategoricalLabellingFunction, Extraction
-from elicit.generic_labelling_functions.qa_transformer import RobertaForQuestionAnsweringWithNegatives, extract_answers, load_qa_model, train_qa
-from elicit.utils.dl_utils import QADataset, SequenceDataset
 
-from tqdm.auto import tqdm
 
 warnings.filterwarnings("ignore")
 
@@ -193,6 +188,19 @@ class BartForSequenceClassificationWithNegatives(BartForSequenceClassification):
         )
 
 
+def load_llm_model(model_directory: str):
+    tokenizer = AutoTokenizer.from_pretrained(
+        "impira/layoutlm-document-qa",
+        add_prefix_space=True,
+    )
+    pipeline = pipeline(
+        model="impira/layoutlm-document-qa",
+        tokenizer=tokenizer,
+        trust_remote_code=True,
+    )
+    return pipeline
+
+
 def load_seq_model(model_directory: str) -> tuple[RobertaForQuestionAnsweringWithNegatives, BartTokenizerFast]:
     if (model_directory / "seq_model").exists():
         print("Fine tuned Sequence Classifier model found, loading...")
@@ -209,86 +217,28 @@ def load_seq_model(model_directory: str) -> tuple[RobertaForQuestionAnsweringWit
     return model, tokenizer
 
 
-class NLILabellingFunction(CategoricalLabellingFunction):
+class LayoutLMLabellingFunction(CategoricalLabellingFunction):
     def __init__(self, schemas, logger, **kwargs):
         super().__init__(schemas, logger, **kwargs)
-        self.match_threshold = 0.5
-        self.qna_threshold = 0.1
 
     def load(self, model_directory: Path, device: Union[int, str]) -> None:
         self.device = device
         self.model_directory = model_directory
+        self.vqa_model = load_llm_model(model_directory)
         self.seq_model, self.seq_tokenizer = load_seq_model(model_directory)
-        self.qna_model, self.qna_tokenizer = load_qa_model(model_directory)
-        self.qna_pipeline = pipeline(
-            task='question-answering',
-            model=self.qna_model,
-            tokenizer=self.qna_tokenizer,
-            device=device
-        )
         self.classifier = pipeline(
             task='zero-shot-classification',
             model=self.seq_model,
             tokenizer=self.seq_tokenizer,
             device=device
         )
-        self.loaded = True
 
     def extract(self, document_name: str, variable_name: str, document_text: str) -> None:
         questions = self.get_schema("questions", variable_name)
         categories = self.get_schema("categories", variable_name)
-        final_threshold = 0.1
-        answers = extract_answers(
-            document_text,
-            questions=questions,
-            qna_model=self.qna_pipeline,
-            threshold=self.qna_threshold
-        )
-        extractions = match_classify(
-            answers=answers,
-            document_text=document_text,
-            levels=categories,
-            classification_model=self.classifier,
-            filter_threshold=self.match_threshold,
-            threshold=final_threshold)
-        self.push_many(document_name, variable_name, extractions)
 
     def train(self, data: dict[str, List["Extraction"]]):
-        print("Training Q&A model")
-        qa_dataset = QADataset(data, self.get_schema(
-            "questions"), self.qna_tokenizer)
-        self.qna_model = train_qa(qa_dataset, self.qna_model, self.device)
-        print(f"Saving Trained Model to {self.model_directory / 'qna_model'}")
-        self.qna_model.save_pretrained(self.model_directory / "qna_model")
-        print("Training Seq. Classification Model")
-        for var in data.keys():
-            dataset = SequenceDataset(data[var], self.get_schema(
-                "categories", var), self.classifier.tokenizer)
-            N = len(dataset)
-            print(
-                f"Fine-tuning zero-shot sequence classifier for variable {var} on {N} samples.")
-            train_set, val_set = torch.utils.data.random_split(
-                dataset, [N - (N // 10), N // 10])
-            training_args = TrainingArguments(
-                output_dir=self.model_directory / 'seq_model',
-                num_train_epochs=3,              # total number of training epochs
-                per_device_train_batch_size=16,  # batch size per device during training
-                per_device_eval_batch_size=64,   # batch size for evaluation
-                warmup_steps=500,                # number of warmup steps for learning rate scheduler
-                weight_decay=0.01,               # strength of weight decay
-                logging_dir=self.model_directory / 'logs',            # directory for storing logs
-                logging_steps=10,
-            )
-            trainer = Trainer(
-                model=self.seq_model,
-                args=training_args,
-                train_dataset=train_set,
-                eval_dataset=val_set
-            )
-            trainer.train()
-            print(
-                f"Saving Trained Model to {self.model_directory / 'seq_model'}")
-        self.seq_model.save_pretrained(self.model_directory / "seq_model")
+        pass
 
     @property
     def labelling_method(self) -> str:

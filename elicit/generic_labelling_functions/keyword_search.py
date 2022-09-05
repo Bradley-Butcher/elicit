@@ -34,8 +34,9 @@ def exact_match(doc: str, keywords: Dict[str, List[str]]) -> List[Tuple[str, Ext
             exact_matches[match] += [(span.text, start, end)]
     extractions = []
     for match in exact_matches.keys():
-        extractions.append(Extraction.from_spacy_multiple(
-            doc=doc, value=match, confidence=1.0, evidence_list=exact_matches[match]))
+        for m in exact_matches[match]:
+            extractions.append(Extraction.from_spacy(
+                doc=doc, value=match, confidence=0.1, start=m[1], end=m[2]))
     return extractions
 
 

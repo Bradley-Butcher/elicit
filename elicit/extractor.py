@@ -18,13 +18,14 @@ from tqdm import tqdm
 
 
 class Extractor:
-    def __init__(self, db_path: Path, model_path: Path = Path(__file__).parent / "models", device: int = -1):
+    def __init__(self, db_path: Path, model_path: Path = Path(__file__).parent / "models", device: int = -1, top_k: int = -1):
         self.logger = ElicitLogger(db_path)
         self.model_path = model_path
         model_path.mkdir(parents=True, exist_ok=True)
         self.device = device
         self.lfs = []
         self.schemas = {}
+        self.top_k = top_k
 
     def register_schema(self, schema: Union[Path, dict], schema_name: str) -> None:
         if len(self.lfs) > 0:
@@ -45,7 +46,9 @@ class Extractor:
             raise ValueError(
                 "Must register schemas before registering labelling functions.")
         obj = labelling_function(schemas=self.schemas,
-                                 logger=self.logger, **function_kwargs)
+                                 logger=self.logger,
+                                 top_k=self.top_k,
+                                 **function_kwargs)
         self.lfs.append(obj)
         print(f"Registered labelling function: {obj.labelling_method}")
 

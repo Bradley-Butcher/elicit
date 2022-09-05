@@ -15,7 +15,7 @@ from spacy.language import Language
 
 
 from elicit.utils.loading import load_schema
-from database.db_utils import connect_db, get_next_id, get_doc_id, get_variable_id, get_extraction_id
+from database.db_utils import connect_db, get_next_id, get_doc_id, get_variable_id, get_extraction_id, query_db
 from elicit.utils import context_from_doc_char
 
 
@@ -68,6 +68,33 @@ class ElicitLogger:
         else:
             return get_next_id(self.db, 'extraction')
 
+    def find_matching_evidence(self, document_id: int, variable_id: int, extraction: "Extraction"):
+        """
+        Check the database to see if any extractions have previously identified the same evidence.
+        :param document_id: The ID of the document.
+        :param variable_id: The ID of the variable.
+        :param evidence: The evidence to match.
+        :return: The ID of the matching evidence, or -1 if no matching evidence is found.
+        """
+        if extraction.exact_context is None:
+            return -1
+        for row in self.db.execute("SELECT extraction_id, exact_context, local_context, wider_context FROM extraction WHERE variable_id = ? AND document_id = ?", (variable_id, document_id)):
+            if row[1] is None:
+                continue
+            if row[1] in extraction.local_context or extraction.exact_context in row[2]:
+                return row[0]
+        return -1
+
+    def _check_duplicate(self, extraction_id: int, method: str, extraction: "Extraction"):
+        row = query_db(
+            self.db, "SELECT confidence FROM raw_extraction WHERE extraction_id = ? AND method = ?", (extraction_id, method))
+        if len(row) > 0:
+            if float(row[0][0]) < extraction.confidence:
+                self.db.execute("UPDATE raw_extraction SET confidence = ? WHERE extraction_id = ? AND method = ?", (
+                    extraction.confidence, extraction_id, method))
+            return True
+        return False
+
     def _push_evidence(self, document_id: int, variable_id: int, extraction: "Extraction", method: str):
         """
         Push the given evidence to the database.
@@ -75,17 +102,16 @@ class ElicitLogger:
         :param variable_id: The ID of the variable.
         :param evidence: The evidence to push.
         """
-        next_extraction_id = self._get_extraction(
-            document_id, variable_id, method)
-        try:
+        extraction_id = self.find_matching_evidence(
+            document_id, variable_id, extraction)
+        if extraction_id < 0:
+            extraction_id = get_next_id(self.db, 'extraction')
             self.db.execute(
-                "INSERT INTO extraction (extraction_id, method, exact_context, local_context, wider_context, confidence, variable_id, document_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (next_extraction_id, method, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, variable_id, document_id))
-        except IntegrityError:
-            # set valid value
-            if self.db.execute("SELECT valid from extraction where extraction_id = ?", (next_extraction_id,)).fetchone()[0] == 'TRUE':
-                return
-            self.db.execute(
-                "UPDATE extraction SET method = ?, exact_context = ?, local_context = ?, wider_context = ?, confidence = ?, alert = ? WHERE extraction_id = ?", (method, extraction.exact_context, extraction.local_context, extraction.wider_context, extraction.confidence, 'TRUE', next_extraction_id))
+                "INSERT INTO extraction (extraction_id, exact_context, local_context, wider_context, variable_id, document_id) VALUES (?, ?, ?, ?, ?, ?)", (extraction_id, extraction.exact_context, extraction.local_context, extraction.wider_context, variable_id, document_id))
+        if not self._check_duplicate(extraction_id, method, extraction):
+            raw_extraction_id = get_next_id(self.db, 'raw_extraction')
+            self.db.execute("INSERT INTO raw_extraction (raw_extraction_id, extraction_id, method, confidence) VALUES (?, ?, ?, ?)",
+                            (raw_extraction_id, extraction_id, method, extraction.confidence))
 
     def push_variable(self, document_name: str, variable_name: str, variable_value: str) -> None:
         """
@@ -97,7 +123,7 @@ class ElicitLogger:
         doc_id = self._get_doc(document_name)
         var_id = self._get_variable(doc_id, variable_name, variable_value)
         self._push_evidence(doc_id, var_id, Extraction.not_present(
-            variable_value), "default")
+            variable_value), "manual")
         self.db.commit()
 
     def push(self, document_name: str, variable_name: str, extraction: "Extraction", method: str):
@@ -157,11 +183,12 @@ class ElicitLogger:
 
 class LabellingFunctionBase(ABC):
 
-    def __init__(self, schemas: dict[str, Path], logger: ElicitLogger):
+    def __init__(self, schemas: dict[str, Path], logger: ElicitLogger, top_k: int = -1):
         """Initialize the labelling function."""
         self.schemas = {k: v for k, v in schemas.items()}
         self.logger = logger
         self.loaded = False
+        self.top_k = top_k
 
     @abstractmethod
     def load(self, model_directory: Path, device: Union[int, str]) -> None:
@@ -217,7 +244,11 @@ class LabellingFunctionBase(ABC):
 
         :return: None
         """
-        for extraction in extraction_list:
+        sorted_extractions = sorted(
+            extraction_list, key=lambda x: x.confidence, reverse=True)
+        if self.top_k > 0:
+            sorted_extractions = sorted_extractions[:self.top_k]
+        for extraction in sorted_extractions:
             self.push(document_name, variable_name, extraction)
 
     @property
@@ -243,8 +274,8 @@ class LabellingFunctionBase(ABC):
 
 class CategoricalLabellingFunction(LabellingFunctionBase):
 
-    def __init__(self, schemas: dict[str, Path], logger: ElicitLogger):
-        super().__init__(schemas, logger)
+    def __init__(self, schemas: dict[str, Path], logger: ElicitLogger, top_k: int = -1):
+        super().__init__(schemas, logger, top_k)
 
     @abstractmethod
     def train(self, data: dict[str, List["Extraction"]]):
@@ -276,8 +307,8 @@ class CategoricalLabellingFunction(LabellingFunctionBase):
 
 class NumericalLabellingFunction(LabellingFunctionBase):
 
-    def __init__(self, schemas: dict[str, Path], logger: ElicitLogger):
-        super().__init__(schemas, logger)
+    def __init__(self, schemas: dict[str, Path], logger: ElicitLogger, top_k=-1):
+        super().__init__(schemas, logger, top_k)
 
     @abstractmethod
     def train(self, data: dict[str, List["Extraction"]]):
@@ -309,8 +340,8 @@ class NumericalLabellingFunction(LabellingFunctionBase):
 
 class RawLabellingFunction(LabellingFunctionBase):
 
-    def __init__(self, schemas: dict[str, Path], logger: ElicitLogger):
-        super().__init__(schemas, logger)
+    def __init__(self, schemas: dict[str, Path], logger: ElicitLogger, top_k=-1):
+        super().__init__(schemas, logger, top_k)
 
     @abstractmethod
     def load(self, model_directory: Path, device: Union[int, str]) -> None:
@@ -371,7 +402,7 @@ class Extraction:
         return cls(value, None, None, None, 0, None, None)
 
     @classmethod
-    def from_character_startend(cls, doc: str, value: str, confidence: float, start: int, end: int, local_padding: int = 100, wider_padding: int = 500, max_chars: int = 100) -> "Extraction":
+    def from_character_startend(cls, doc: str, value: str, confidence: float, start: int, end: int, local_padding: int = 75, wider_padding: int = 300, max_chars: int = 100) -> "Extraction":
         """
         Returns an evidence object from a character start and end index.
 
@@ -385,10 +416,10 @@ class Extraction:
 
         :return: An Extraction object.
         """
+        exact_context = context_from_doc_char(doc, start, end, padding=0)
         mid = (start + end) // 2
         start = int(max(start, mid - (max_chars / 2)))
         end = int(min(end, mid + (max_chars / 2)))
-        exact_context = context_from_doc_char(doc, start, end, padding=0)
         local_context = context_from_doc_char(doc, start, end, local_padding)
         wider_context = context_from_doc_char(doc, start, end, wider_padding)
         exact_context = cls.sanitize(exact_context)

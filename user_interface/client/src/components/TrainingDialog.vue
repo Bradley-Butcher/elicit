@@ -63,7 +63,7 @@ export default {
   props: {
     context: {
       type: String,
-      required: true,
+      required: false,
     },
     open: {
       type: Boolean,

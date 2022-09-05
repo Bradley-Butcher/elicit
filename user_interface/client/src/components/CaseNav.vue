@@ -22,6 +22,7 @@
     <CategoryList
       :document_name="document_id"
       :variable_name="active_variable"
+      :training_state="training_state"
     ></CategoryList>
   </div>
 </template>
