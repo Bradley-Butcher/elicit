@@ -164,6 +164,11 @@ export default {
   mounted() {
     this.explain_context = this.extraction.local_context;
   },
+  watch: {
+    explaination_modal: function () {
+      this.explain_context = this.extraction.local_context;
+    },
+  },
   computed: {
     lf() {
       if (this.extraction.lfs.length == 1) {
