@@ -11,7 +11,7 @@
         @click.stop="showModalNow = !showModalNow"
       >
         <v-card-text>
-          <div class="text-overline mb-1">{{ lf }} | {{ confidence }}</div>
+          <div class="text-overline mb-1">{{ lf }} | {{ confidence }}%</div>
           <div class="mx-4 text-center font-weight-light">
             <span class="text-lg-h6">“</span>
             {{ shorten_text(extraction.local_context, 50) }}
@@ -179,7 +179,7 @@ export default {
     },
     confidence() {
       if (this.extraction.meta_confidence != null) {
-        return this.extraction.meta_confidence * 100;
+        return Math.round(this.extraction.meta_confidence * 100);
       } else {
         // join list of confidences with a comma
         return this.extraction.lfs

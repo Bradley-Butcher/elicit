@@ -107,7 +107,7 @@ class ElicitLogger:
         if extraction_id < 0:
             extraction_id = get_next_id(self.db, 'extraction')
             self.db.execute(
-                "INSERT INTO extraction (extraction_id, exact_context, local_context, wider_context, variable_id, document_id) VALUES (?, ?, ?, ?, ?, ?)", (extraction_id, extraction.exact_context, extraction.local_context, extraction.wider_context, variable_id, document_id))
+                "INSERT INTO extraction (extraction_id, exact_context, local_context, wider_context, variable_id, document_id, valid) VALUES (?, ?, ?, ?, ?, ?, ?)", (extraction_id, extraction.exact_context, extraction.local_context, extraction.wider_context, variable_id, document_id, extraction.valid))
         if not self._check_duplicate(extraction_id, method, extraction):
             raw_extraction_id = get_next_id(self.db, 'raw_extraction')
             self.db.execute("INSERT INTO raw_extraction (raw_extraction_id, extraction_id, method, confidence) VALUES (?, ?, ?, ?)",

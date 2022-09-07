@@ -7,14 +7,19 @@ import functools
 from typing import Callable, List, Optional, Set, Type, Union
 
 from pathlib import Path
+from typing_extensions import Literal
 from unittest.util import strclass
 
 import yaml
 from elicit.interface import ElicitLogger, Extraction, LabellingFunctionBase
+from elicit.performance import performance
+
 
 from elicit.utils.loading import load_document
 
 from tqdm import tqdm
+
+from user_interface.server.sorting import learn_meta_classifier, update_confidence
 
 
 class Extractor:
@@ -135,3 +140,11 @@ class Extractor:
                 else:
                     data[variable] = extraction_set
             lf_obj.train(data)
+
+    def sort(self, method: Literal["weasul", "lr"], **kwargs):
+        print("Updating confidence scores.")
+        update_confidence(self.logger.db, method=method, **kwargs)
+        learn_meta_classifier(self.logger.db, **kwargs)
+
+    def performance(self, performance_type: Literal["agreement", "confidence"] = "agreement"):
+        return performance(self.logger.db, performance_type)

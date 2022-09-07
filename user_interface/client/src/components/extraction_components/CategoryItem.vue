@@ -27,7 +27,9 @@
               <div class="font-weight-bold">
                 {{
                   value_data.confidence
-                    ? "Confidence: " + value_data.confidence
+                    ? "Confidence: " +
+                      Math.round(value_data.confidence * 100) +
+                      "%"
                     : "Agreement: " + value_data.agreement
                 }}
               </div></v-card

@@ -8,6 +8,12 @@ db_path = Path(__file__).parent / "db.sqlite"
 schema_path = Path(__file__).parent / "db_schema.sql"
 
 
+def get_variables(db):
+    variables = query_db(
+        db, f"SELECT DISTINCT variable_name FROM variable")
+    return [v[0] for v in variables]
+
+
 def connect_db(db_path: Path = db_path) -> sqlite3.Connection:
     """
     Connect to the database. Build the tables if they don't exist.
