@@ -24,5 +24,5 @@ def test_download_data(server):
     with server.get("/api/download_data/", follow_redirects=True) as response:
         data = pd.read_csv(StringIO(response.data.decode("utf-8")))
     assert all(data.columns == ["document_name",
-               *[f"var_{i}" for i in range(10)]])
+               *[f"var_{i}" for i in range(2)]])
     assert len(data) == 100

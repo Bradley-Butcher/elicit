@@ -45,7 +45,6 @@ def _filter_candidates(answers: List[dict], threshold: float = 0.5) -> str:
 
     :return: Filtered list of candidates.
     """
-    answers = _flatten_answers(answers=answers)
     return [(a["answer"], a["score"], a["start"], a["end"]) for a in answers if a["score"] > threshold]
 
 
@@ -64,6 +63,36 @@ def split_question(question: str, context: str, max_length: int = 512) -> Tuple[
         return [{"question": question, "context": c} for c in contexts]
 
 
+def split_context(context: str, max_length: int = 512, min_length: int = 100) -> List[Tuple[str, int]]:
+    """
+    Split a context into max_length (or smaller) chunks. Splitting on periods or commas.
+    Additionally, returns the start index of the chunk in the original context.
+
+    :param context: Context to split.
+    :param max_length: Maximum length of each chunk.
+
+    :return: List of tuples of (chunk, start_index).
+
+    """
+    if len(context) < max_length:
+        return [(context, 0)]
+    else:
+        contexts = []
+        start = 0
+        while len(context) > max_length:
+            idx = max(context[:max_length].rfind(i)
+                      for i in [".", ",", "\n"])
+            if idx < min_length:
+                idx = max_length
+            contexts.append((context[:idx], start))
+            context = context[idx:]
+            start += idx
+        contexts.append((context, start))
+    # contexts = [(context[start_idx:end_idx], start_idx) for start_idx, end_idx in zip(
+    #     range(0, len(context), max_length), range(max_length, len(context), max_length))]
+    return contexts
+
+
 def extract_answers(document_text: str, questions: List[str], qna_model: Pipeline, topk: int = 5, threshold: float = 0.3) -> Dict[str, Tuple[str, float, int, int]]:
     """
     Extract answers from a document using a Q&A Transformer model.
@@ -75,12 +104,15 @@ def extract_answers(document_text: str, questions: List[str], qna_model: Pipelin
 
     :return: Dictionary of answers.
     """
-    question_input = []
-    for q in questions:
-        qs = split_question(question=q, context=document_text)
-        question_input.extend(qs)
-    res = qna_model(question_input, top_k=topk)
-    return _filter_candidates(res, threshold=threshold)
+    results = []
+    for c, start in split_context(document_text):
+        local_questions = [{"question": question, "context": c}
+                           for question in questions]
+        res = qna_model(local_questions, top_k=topk)
+        res = _flatten_answers(res)
+        results += [{"answer": r["answer"], "score": r["score"], "start": r["start"] +
+                     start, "end": r["end"] + start} for r in res]
+    return _filter_candidates(results, threshold=threshold)
 
 
 class RobertaForQuestionAnsweringWithNegatives(RobertaForQuestionAnswering):

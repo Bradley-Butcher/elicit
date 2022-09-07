@@ -8,6 +8,7 @@ from typing import List, Optional, Union
 import logging
 import warnings
 import yaml
+import re
 
 logging.getLogger('pdfminer').setLevel(logging.ERROR)
 
@@ -41,6 +42,7 @@ def load_pdf(path: Path, pages: Optional[List[int]] = None) -> str:
                 doc += text
     return doc
 
+
 def load_document(document_location: Path, pdf_kwargs: dict = {}):
     """
     Load a document from a PDF or txt file.
@@ -55,10 +57,11 @@ def load_document(document_location: Path, pdf_kwargs: dict = {}):
     elif document_location.suffix == ".txt":
         with open(document_location, "r") as f:
             text = f.read()
-            text.replace("\n", " ")
-            return text  
+            text = re.sub("[^a-zA-Z0-9'., ]+", ' ', text)
+            return text
     else:
         raise ValueError(f"Unknown file type {document_location.suffix}")
+
 
 def pdf_to_plaintext(pdf_location: Path, pages: Optional[List[int]] = None, newlines: bool = False, raw: bool = False) -> str:
     """
@@ -78,6 +81,7 @@ def pdf_to_plaintext(pdf_location: Path, pages: Optional[List[int]] = None, newl
         if not newlines:
             raw_text = raw_text.replace("\n", " ")
     return raw_text
+
 
 def load_schema(schema_path: Path) -> dict[str, Union[str, List[str]]]:
     """

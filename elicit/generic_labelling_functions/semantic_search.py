@@ -56,16 +56,16 @@ def match_levels(sentence_score: dict[str, float], levels: list[str], model: Sen
 
     :return: Tuple of level, sentence, score.
     """
-    max_sentence = None
-    max_score = -1
-    max_level = None
+    sentences = []
+    scores = []
+    found_levels = []
     for sentence, score in sentence_score.items():
         level, level_score = sentence_similarities([sentence], levels, model, k=1).popitem()
-        if level_score * score > max_score and level_score * score > threshold:
-            max_sentence = sentence
-            max_score = level_score * score
-            max_level = level
-    return max_level, max_sentence, max_score
+        if level_score * score > threshold:
+            sentences.append(sentence)
+            found_levels.append(level)
+            scores.append(level_score * score)
+    return found_levels, sentences, scores
 
 def get_sentence_start_end(doc:str, sentence: str) -> tuple[int, int]:
     """
@@ -82,7 +82,7 @@ def get_sentence_start_end(doc:str, sentence: str) -> tuple[int, int]:
 class SemanticSearchLF(CategoricalLabellingFunction):
     def __init__(self, schemas, logger, **kwargs):
         super().__init__(schemas, logger, **kwargs)
-        self.sim_threshold = 0.25
+        self.sim_threshold = 0.1
 
     def _load_similarity_model(self, model_directory: str, device: Union[int, str]) -> SentenceTransformer:
         if (model_directory / "sim_model").exists():
@@ -90,7 +90,7 @@ class SemanticSearchLF(CategoricalLabellingFunction):
             return SentenceTransformer(
                 model_directory / "sim_model")
         else:
-            print("No fine tuning similarity model found, training...")
+            print("No fine tuning similarity model found, using default...")
             return SentenceTransformer(
                 'all-MiniLM-L6-v2',
                 device=device
@@ -104,9 +104,10 @@ class SemanticSearchLF(CategoricalLabellingFunction):
         categories = self.get_schema("categories", variable_name)
         doc_sims = doc_similarities(questions, document_text, self.model)
         matched_level, matched_sentence, matched_score = match_levels(doc_sims, categories, self.model, self.sim_threshold)
-        if matched_level:
-            s_start, s_end = get_sentence_start_end(document_text, matched_sentence)
-            self.push(document_name, variable_name, Extraction.from_character_startend(document_text, matched_level, matched_score, s_start, s_end))
+        if len(matched_level) > 0:
+            for level, sentence, score in zip(matched_level, matched_sentence, matched_score):
+                start, end = get_sentence_start_end(document_text, sentence)
+                self.push(document_name, variable_name, Extraction.from_character_startend(document_text, level, score, start, end))
 
     def train(self, document_name: str, variable_name: str, extraction: Extraction):
         pass

@@ -5,8 +5,7 @@ CREATE TABLE IF NOT EXISTS document (
 
 CREATE TABLE IF NOT EXISTS extraction (
     extraction_id INTEGER PRIMARY KEY,
-    method TEXT NOT NULL,
-    confidence TEXT NOT NULL,
+    meta_confidence TEXT,
     exact_context TEXT,
     local_context TEXT,
     wider_context TEXT,
@@ -22,6 +21,17 @@ CREATE TABLE IF NOT EXISTS extraction (
     CONSTRAINT fk_document
         FOREIGN KEY (document_id)
         REFERENCES document(document_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS raw_extraction (
+    raw_extraction_id INTEGER PRIMARY KEY,
+    extraction_id INTEGER,
+    method TEXT NOT NULL,
+    confidence TEXT NOT NULL,
+    CONSTRAINT fk_extraction
+        FOREIGN KEY (extraction_id)
+        REFERENCES extraction(extraction_id)
         ON DELETE CASCADE
 );
 

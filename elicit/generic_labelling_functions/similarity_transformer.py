@@ -56,23 +56,20 @@ def match_similarity(answers: List[Tuple[str, float]], doc: str, levels: List[st
                        for o, s in output if s > filter_threshold]
     if not candidates:
         return [Extraction.abstain()]
-    compressed_candidates, context = compress(candidates)
-
     # get all candidates that are above the threshold
-    candidates = [(o, s)
-                  for o, s in compressed_candidates.items() if s > threshold]
+    candidates = [(cat, sc, st, end)
+                  for cat, sc, st, end in candidates if sc > threshold]
 
-    # create a list of Extraction for each candidate
     extractions = []
-    for candidate, score in candidates:
-        if candidate == "":
+    for cat, sc, st, end in candidates:
+        if cat == "":
             continue
         extractions.append(Extraction.from_character_startend(
             doc,
-            candidate,
-            score,
-            context[candidate]["start"],
-            context[candidate]["end"]
+            cat,
+            sc,
+            st,
+            end
         ))
 
     if len(extractions) == 0:
@@ -86,7 +83,7 @@ class SimilarityLabellingFunction(CategoricalLabellingFunction):
     def __init__(self, schemas, logger, **kwargs):
         super().__init__(schemas, logger, **kwargs)
         self.filter_threshold = 0.5
-        self.qna_threshold = 0.3
+        self.qna_threshold = 0.1
 
     def _load_similarity_model(self, model_directory: str, device: Union[int, str]) -> SentenceTransformer:
         if (model_directory / "sim_model").exists():
@@ -115,7 +112,7 @@ class SimilarityLabellingFunction(CategoricalLabellingFunction):
     def extract(self, document_name: str, variable_name: str, document_text: str) -> None:
         questions = self.get_schema("questions", variable_name)
         categories = self.get_schema("categories", variable_name)
-        final_threshold = 1 / (len(categories) + 1)
+        final_threshold = 0.1
         answers = extract_answers(
             document_text,
             questions=questions,

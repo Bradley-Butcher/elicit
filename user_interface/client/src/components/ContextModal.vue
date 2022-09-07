@@ -39,29 +39,35 @@
         </div>
       </div>
     </div> -->
-    <v-dialog
-        transition="dialog-top-transition"
-        max-width="60%"
-        v-model="dialog"
-        data-app
-      >
-    <template v-slot:default="dialog">
+  <v-dialog max-width="60%" v-model="dialog" data-app>
     <v-card>
-      <v-toolbar color="2a2a2e" dark>Wider context for labelling function: {{ modal_title }}</v-toolbar>
+      <!-- <v-card-text>
+        <div class="text pa-12">{{ formatted_context }}</div>
+      </v-card-text> -->
+
       <v-card-text>
-        <div class="text pa-12">{{formatted_context}}</div>
+        <div class="text-overline pa-6" style="text-align: center">
+          {{ lf }} | {{ confidence }}
+        </div>
+        <div class="mx-2 text-center font-weight-light">
+          <span class="text-lg-h6"></span>
+
+          <span class="text-lg-h6">“</span>
+          <span v-html="formatted_context"></span>
+          <span class="text-lg-h6">”</span>
+        </div>
       </v-card-text>
+
       <v-card-actions class="justify-end">
-        <v-btn text @click="dialog.value = false">Close</v-btn>
+        <v-btn text @click="dialog = false">Close</v-btn>
       </v-card-actions>
     </v-card>
-    </template>
-    </v-dialog>
+  </v-dialog>
 </template>
 
 <script>
 export default {
-  name: "EvidenceModal",
+  name: "ContextModal",
   emits: ["closeModal"],
   props: {
     showModal: Boolean,
@@ -69,16 +75,36 @@ export default {
       type: Object,
     },
   },
-  watch: {
-    showModal() {
-        this.dialog = !this.dialog;
-    }
-  },
   data() {
     return {
-      active: this.showModal,
       dialog: false,
     };
+  },
+  watch: {
+    showModal() {
+      this.dialog = true;
+    },
+  },
+  methods: {
+    add_mark(evidence) {
+      // replace text substr with <mark>substr</mark>
+      if (evidence.valid == "TRUE" && evidence.validated_context) {
+        return "<mark>" + evidence.validated_context + "</mark>";
+      }
+      if (!evidence.exact_context) {
+        return "No Evidence";
+      }
+      if (evidence.exact_context == "N/A") {
+        return evidence.exact_context;
+      }
+      let substr = evidence.exact_context;
+      let regex = new RegExp(substr, "gi");
+      let new_text = evidence.local_context.replace(
+        regex,
+        "<mark>" + substr + "</mark>"
+      );
+      return new_text;
+    },
   },
   computed: {
     formatted_context() {
@@ -88,11 +114,28 @@ export default {
       ) {
         return "The extractor in question did not capture any relevant information from the document.";
       } else {
-        return this.evidence["wider_context"];
+        return this.add_mark(this.evidence);
       }
     },
     modal_title() {
-      return this.evidence["method"];
+      return this.evidence.lf;
+    },
+    lf() {
+      if (this.evidence.lfs.length == 1) {
+        return this.evidence.lfs[0].lf;
+      } else {
+        return "multiple (" + this.evidence.lfs.length + ")";
+      }
+    },
+    confidence() {
+      if (this.evidence.meta_confidence != null) {
+        return this.evidence.meta_confidence * 100;
+      } else {
+        // join list of confidences with a comma
+        return this.evidence.lfs
+          .map((lf) => lf.lf + " :  " + Math.round(lf.lf_confidence * 100))
+          .join(", ");
+      }
     },
   },
 };

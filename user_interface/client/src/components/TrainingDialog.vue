@@ -2,8 +2,9 @@
   <div>
     <v-dialog persistent v-model="open" max-width="30%">
       <v-card>
-        <v-card-title class="text-h5"> Explaination Highlighter </v-card-title>
-        <v-divider class="p-0"></v-divider>
+        <v-card-title class="text-overline mb-1 h5">
+          Highlight Explaination:
+        </v-card-title>
         <Highlight ref="highlightReference" @highlighted="addHighlighted">
           <v-card-text v-html="display_context"></v-card-text>
         </Highlight>
@@ -63,7 +64,7 @@ export default {
   props: {
     context: {
       type: String,
-      required: true,
+      required: false,
     },
     open: {
       type: Boolean,

@@ -9,21 +9,26 @@ def database():
     db_path.unlink(missing_ok=True)
     sql_path = Path(__file__).parent.parent / "database" / "db_schema.sql"
     n_data = 100
-    n_vars = 10
+    n_vars = 2
     db = connect_db(db_path)
     build_tables(db, sql_path)
     logger = ElicitLogger(db_path)
     for i in range(n_data):
         for j in range(n_vars):
             val = random.randint(1, 3)
-            e = Extraction(f"value_{val}", None, None, None, 1, None, None)
-            logger.push(f"doc_{i}", f"var_{j}", e, f"test_{val}")
-            selector = random.random()
-            if selector > 0.5:
-                query_db(
-                    db, f"UPDATE extraction SET valid='TRUE' WHERE document_id={i} AND variable_id={(i*n_vars)+j}")
-            elif selector < 0.1:
-                query_db(
-                    db, f"UPDATE extraction SET valid='FALSE' WHERE document_id={i} AND variable_id={(i*n_vars)+j}")
+            methods = random.choices(["method_1", "method_2", "method_3"], k=2)
+            valid = random.choices(['TRUE', 'FALSE', None], k=3)
+            e1 = Extraction(f"value_{val}", "test",
+                            "test", None, random.random(), valid[0], None)
+            logger.push(f"doc_{i}", f"var_{j}", e1, methods[0])
+            e2 = Extraction(f"value_{val}", "test",
+                            "test", None, random.random(), valid[1], None)
+            logger.push(f"doc_{i}", f"var_{j}", e2, methods[1])
+            val = random.randint(1, 3)
+            e3 = Extraction(f"value_{val}", "abc",
+                            "abc", None, random.random(), valid[2], None)
+            method = random.choice(["method_1", "method_2", "method_3"])
+            logger.push(f"doc_{i}", f"var_{j}", e3, method)
+
             db.commit()
     return db_path

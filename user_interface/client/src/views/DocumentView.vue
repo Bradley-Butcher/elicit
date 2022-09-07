@@ -116,7 +116,7 @@ export default {
           >
             <CaseNav
               id="case_area"
-              :current_case="$route.params.id"
+              :document_id="$route.params.id"
               :refresh_case="refresh_case"
               :training_state="training_state"
               style="max-width: 100%"

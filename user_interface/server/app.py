@@ -72,6 +72,63 @@ def create_app(db_path: Path, test_config=None):
             evidence += output
         return jsonify(evidence)
 
+    @app.route('/api/document_extractions/<document_name>/<variable_name>', methods=['GET'])
+    @cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
+    def document_extractions(document_name: int, variable_name: str):
+        db = get_db()
+        extractions = {}
+        output = query_db(
+            db, f"""
+            SELECT extraction.extraction_id as extraction_id, extraction.meta_confidence AS meta_confidence,
+            extraction.exact_context AS exact_context, extraction.local_context AS local_context,
+            extraction.wider_context AS wider_context, extraction.valid AS valid,
+            extraction.alert AS alert, variable.variable_name AS variable_name,
+            variable.variable_value AS variable_value, variable.value_confidence AS confidence
+            FROM extraction AS extraction
+            LEFT JOIN variable AS variable
+            ON extraction.variable_id = variable.variable_id
+            LEFT JOIN document AS document
+            ON extraction.document_id = document.document_id
+            WHERE document.document_name='{document_name}'
+            AND variable.variable_name='{variable_name}'"""
+        )
+
+        unique_lfs = len(
+            query_db(db, f"SELECT DISTINCT method FROM raw_extraction"))
+
+        def agreement(values):
+            def _count(v):
+                return len([x for x in v if x["lf"] != "manual"])
+            return f"{max([_count(v['lfs']) for v in values])}/{unique_lfs - 1}"
+
+        def get_raw_extractions(extraction_id) -> list:
+            return query_db(
+                db, f"SELECT method as lf, confidence as lf_confidence FROM raw_extraction WHERE extraction_id={extraction_id}")
+
+        for row in output:
+            extraction = {
+                "extraction_id": row["extraction_id"],
+                "meta_confidence": row["meta_confidence"],
+                "exact_context": row["exact_context"],
+                "local_context": row["local_context"],
+                "wider_context": row["wider_context"],
+                "valid": row["valid"],
+                "alert": row["alert"],
+            }
+            extraction["lfs"] = get_raw_extractions(row["extraction_id"])
+            if not extractions.get(row["variable_value"]):
+                extractions[row["variable_value"]] = {
+                    "confidence": row["confidence"],
+                    "extractions": [extraction]
+                }
+            else:
+                extractions[row["variable_value"]
+                            ]["extractions"].append(extraction)
+        for key in extractions.keys():
+            extractions[key]["agreement"] = agreement(
+                extractions[key]["extractions"])
+        return jsonify(extractions)
+
     @app.route('/api/get_variable_list', methods=['GET'])
     @cross_origin(origin='*', headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
     def get_variable_list():

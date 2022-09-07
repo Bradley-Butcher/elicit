@@ -7,24 +7,30 @@ import functools
 from typing import Callable, List, Optional, Set, Type, Union
 
 from pathlib import Path
+from typing_extensions import Literal
 from unittest.util import strclass
 
 import yaml
 from elicit.interface import ElicitLogger, Extraction, LabellingFunctionBase
+from elicit.performance import performance
+
 
 from elicit.utils.loading import load_document
 
 from tqdm import tqdm
 
+from user_interface.server.sorting import learn_meta_classifier, update_confidence
+
 
 class Extractor:
-    def __init__(self, db_path: Path, model_path: Path = Path(__file__).parent / "models", device: int = -1):
+    def __init__(self, db_path: Path, model_path: Path = Path(__file__).parent / "models", device: int = -1, top_k: int = -1):
         self.logger = ElicitLogger(db_path)
         self.model_path = model_path
         model_path.mkdir(parents=True, exist_ok=True)
         self.device = device
         self.lfs = []
         self.schemas = {}
+        self.top_k = top_k
 
     def register_schema(self, schema: Union[Path, dict], schema_name: str) -> None:
         if len(self.lfs) > 0:
@@ -45,7 +51,9 @@ class Extractor:
             raise ValueError(
                 "Must register schemas before registering labelling functions.")
         obj = labelling_function(schemas=self.schemas,
-                                 logger=self.logger, **function_kwargs)
+                                 logger=self.logger,
+                                 top_k=self.top_k,
+                                 **function_kwargs)
         self.lfs.append(obj)
         print(f"Registered labelling function: {obj.labelling_method}")
 
@@ -132,3 +140,11 @@ class Extractor:
                 else:
                     data[variable] = extraction_set
             lf_obj.train(data)
+
+    def sort(self, method: Literal["weasul", "lr"], **kwargs):
+        print("Updating confidence scores.")
+        update_confidence(self.logger.db, method=method, **kwargs)
+        learn_meta_classifier(self.logger.db, **kwargs)
+
+    def performance(self, performance_type: Literal["agreement", "confidence"] = "agreement"):
+        return performance(self.logger.db, performance_type)

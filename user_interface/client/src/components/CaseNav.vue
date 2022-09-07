@@ -13,24 +13,29 @@
         >{{ val.replace(/_/g, " ") }}</v-tab
       >
     </v-tabs>
-    <AltCase
+    <!-- <AltCase
       :variable="active_variable"
       :variable_data="active_variable_data"
       :training_state="training_state"
       @reload_variable="getMessage"
-    />
+    /> -->
+    <CategoryList
+      :document_name="document_id"
+      :variable_name="active_variable"
+      :training_state="training_state"
+    ></CategoryList>
   </div>
 </template>
 
 <script>
 import axios from "axios";
-import AltCase from "./AltCase.vue";
+import CategoryList from "./extraction_components/CategoryList.vue";
 
 export default {
   name: "CaseNav",
-  props: ["current_case", "refresh_case", "training_state"],
+  props: ["document_id", "refresh_case", "training_state"],
   components: {
-    AltCase,
+    CategoryList,
   },
   data() {
     return {
@@ -39,7 +44,7 @@ export default {
     };
   },
   watch: {
-    current_case() {
+    document_id() {
       this.getMessage();
     },
     refresh_case() {
@@ -52,7 +57,7 @@ export default {
     },
     getMessage() {
       const path =
-        "http://127.0.0.1:5000/api/case_variables/" + this.current_case;
+        "http://127.0.0.1:5000/api/case_variables/" + this.document_id;
       axios
         .get(path)
         .then((res) => {
@@ -106,12 +111,12 @@ export default {
       }
       return data;
     },
-    case_title() {
-      let repl_str = this.current_case.replace(/_/g, " ");
+    document_title() {
+      let repl_str = this.document_id.replace(/_/g, " ");
       return repl_str;
     },
   },
-  created() {
+  mounted() {
     this.getMessage();
   },
 };
