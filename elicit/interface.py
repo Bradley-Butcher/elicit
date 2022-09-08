@@ -10,6 +10,8 @@ from sqlite3 import IntegrityError
 from typing import List, Optional, Tuple, Union
 from dataclasses import dataclass
 from numpy import var
+from difflib import SequenceMatcher
+
 
 from spacy.language import Language
 
@@ -17,6 +19,10 @@ from spacy.language import Language
 from elicit.utils.loading import load_schema
 from database.db_utils import connect_db, get_next_id, get_doc_id, get_variable_id, get_extraction_id, query_db
 from elicit.utils import context_from_doc_char
+
+
+def similar(a, b):
+    return SequenceMatcher(None, a, b).ratio()
 
 
 class ElicitLogger:
@@ -81,7 +87,7 @@ class ElicitLogger:
         for row in self.db.execute("SELECT extraction_id, exact_context, local_context, wider_context FROM extraction WHERE variable_id = ? AND document_id = ?", (variable_id, document_id)):
             if row[1] is None:
                 continue
-            if row[1] in extraction.local_context or extraction.exact_context in row[2]:
+            if row[1] in extraction.local_context or extraction.exact_context in row[2] or similar(row[3], extraction.wider_context) > 0.7:
                 return row[0]
         return -1
 
@@ -389,7 +395,7 @@ class Extraction:
         """
         Sanitize the string.
         """
-        return string.strip().replace("\n", " ").replace("\t", " ").replace("'", "").replace("\"", "").replace('"', "")
+        return string
 
     @classmethod
     def abstain(cls, confidence: float = 0) -> "Extraction":
@@ -418,8 +424,6 @@ class Extraction:
         """
         exact_context = context_from_doc_char(doc, start, end, padding=0)
         mid = (start + end) // 2
-        start = int(max(start, mid - (max_chars / 2)))
-        end = int(min(end, mid + (max_chars / 2)))
         local_context = context_from_doc_char(doc, start, end, local_padding)
         wider_context = context_from_doc_char(doc, start, end, wider_padding)
         exact_context = cls.sanitize(exact_context)

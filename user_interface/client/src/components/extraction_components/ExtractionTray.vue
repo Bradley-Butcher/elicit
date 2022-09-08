@@ -1,22 +1,20 @@
 <template>
-  <div id="extraction_tray">
-    <v-container class="pt-2">
-      <v-row v-dragscroll.x class="fill-height fill-width" justify="start">
-        <v-col
-          class="fill-height"
-          v-for="(extraction, index) in sorted_extractions"
-          :key="index"
-        >
-          <ExtractionCard
-            :extraction="extraction"
-            @update_extraction="update_extraction"
-            @remove_option="remove_option"
-            @revert="revert"
-            :training_state="training_state"
-          ></ExtractionCard>
-        </v-col>
-      </v-row>
-    </v-container>
+  <div id="extraction_tray" class="m-4">
+    <v-row v-dragscroll.x class="fill-height fill-width" justify="start">
+      <v-col
+        class="fill-height"
+        v-for="(extraction, index) in sorted_extractions"
+        :key="index"
+      >
+        <ExtractionCard
+          :extraction="extraction"
+          @update_extraction="update_extraction"
+          @remove_option="remove_option"
+          @revert="revert"
+          :training_state="training_state"
+        ></ExtractionCard>
+      </v-col>
+    </v-row>
   </div>
 </template>
 
@@ -94,6 +92,7 @@ export default {
 <style scoped>
 #extraction_tray {
   overflow-x: hidden;
+  overflow-y: hidden;
 }
 .fill-width {
   overflow-x: hidden;

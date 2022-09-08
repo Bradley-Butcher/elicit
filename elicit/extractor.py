@@ -23,7 +23,7 @@ from user_interface.server.sorting import learn_meta_classifier, update_confiden
 
 
 class Extractor:
-    def __init__(self, db_path: Path, model_path: Path = Path(__file__).parent / "models", device: int = -1, top_k: int = -1):
+    def __init__(self, db_path: Path, model_path: Path = Path(__file__).parent / "models", device: int = 0, top_k: int = 3):
         self.logger = ElicitLogger(db_path)
         self.model_path = model_path
         model_path.mkdir(parents=True, exist_ok=True)

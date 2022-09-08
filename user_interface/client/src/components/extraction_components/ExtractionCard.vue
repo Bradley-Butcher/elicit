@@ -6,18 +6,23 @@
         class="extraction_card"
         outlined
         width="300"
-        height="150"
+        height="250"
         :elevation="hover ? 3 : 1"
         @click.stop="showModalNow = !showModalNow"
       >
         <v-card-text>
-          <div class="text-overline mb-1">{{ lf }} | {{ confidence }}%</div>
-          <div class="mx-4 text-center font-weight-light">
+          <div class="text-overline mb-1">
+            {{ shorten_text(lf, 10) }} | {{ confidence }}%
+          </div>
+          <div
+            class="mx-4 text-center font-weight-light"
+            style="white-space: pre-wrap"
+          >
             <span class="text-lg-h6">“</span>
-            {{ shorten_text(extraction.local_context, 50) }}
+            {{ shorten_text(extraction.local_context, 75) }}
             <span class="text-lg-h6">”</span>
           </div>
-          <div style="position: absolute; left: 125px; top: 110px">
+          <div style="position: absolute; left: 125px; top: 210px">
             <i
               class="fas fa-check fa-xl check mr-2"
               :class="{ valid: extraction.valid == 'TRUE' }"

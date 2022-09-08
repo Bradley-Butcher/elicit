@@ -57,7 +57,7 @@ def load_document(document_location: Path, pdf_kwargs: dict = {}):
     elif document_location.suffix == ".txt":
         with open(document_location, "r") as f:
             text = f.read()
-            text = re.sub("[^a-zA-Z0-9'., ]+", ' ', text)
+            text = re.sub("[^a-zA-Z0-9'.,:\n\? ]+", ' ', text)
             return text
     else:
         raise ValueError(f"Unknown file type {document_location.suffix}")

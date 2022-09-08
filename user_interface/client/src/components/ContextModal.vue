@@ -53,7 +53,7 @@
           <span class="text-lg-h6"></span>
 
           <span class="text-lg-h6">“</span>
-          <span v-html="formatted_context"></span>
+          <span style="white-space: pre-wrap" v-html="formatted_context"></span>
           <span class="text-lg-h6">”</span>
         </div>
       </v-card-text>
