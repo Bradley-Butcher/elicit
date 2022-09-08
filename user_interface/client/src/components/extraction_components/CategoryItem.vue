@@ -41,10 +41,10 @@
               elevation="0"
               outlined
               style="background-color: #eceff1"
-              max-width="150px"
+              max-width="250px"
             >
               <div class="font-weight-bold">
-                Evidence: {{ exact_context }}
+                Evidence: {{ shorten_text(exact_context, 20) }}
               </div></v-card
             ></v-col
           >
@@ -106,6 +106,15 @@ export default {
         extraction_id,
         extraction
       );
+    },
+    shorten_text(text, max_length) {
+      if (text == null) {
+        return "";
+      }
+      if (text.length > max_length) {
+        return text.substring(0, max_length) + "...";
+      }
+      return text;
     },
     remove_option(extraction_id) {
       this.$emit("remove_option", this.value_name, extraction_id);

@@ -12,7 +12,7 @@ import spacy
 
 
 def split_doc(doc: str, max_length: int = 512, token: str = ".") -> list:
-    """Split a document into sentences. 
+    """Split a document into sentences.
     Splitting on the last period <Token> before the max length.
 
     Args:
@@ -48,20 +48,13 @@ def context_from_doc_char(doc: str, start_idx: int, end_idx: int, padding: int =
     """
     if padding == 0:
         return doc[start_idx:end_idx]
-    start_idx = max(0, start_idx - padding)
-    end_idx = min(len(doc), end_idx + padding)
-    period_start_idx = doc[:start_idx].rfind(".")
-    comma_start_idx = doc[:start_idx].rfind(",")
-    if period_start_idx < 0 and comma_start_idx < 0:
-        start_idx = 0
-    else:
-        start_idx = max(period_start_idx, comma_start_idx) + 1
-    period_end_idx = doc[end_idx:].find(".")
-    comma_end_idx = doc[end_idx:].find(",")
-    if period_end_idx < 0 and comma_end_idx < 0:
-        end_idx = len(doc)
-    else:
-        end_idx = min(period_end_idx, comma_end_idx) + end_idx + 1
+    start_idx = max(0, start_idx - (padding // 2))
+    end_idx = min(len(doc), end_idx + (padding // 2))
+
+    start_idx = max([idx for idx in [doc[:start_idx].rfind(s)
+                    for s in [".", ",", "\n"]]]) + 1
+    end_idx = min([len(doc), *[idx + end_idx for idx in [doc[end_idx:].find(s) for s in [".", ",", "\n"]] if idx != 0]])
+
     return doc[start_idx: end_idx]
 
 
